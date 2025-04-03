@@ -1384,18 +1384,92 @@ def show_detailed():
     
     st.dataframe(df, use_container_width=True)
 def login():
-    st.title("🔐 Login to Access Dashboard")
+    # Custom login UI inspired by your image
+    st.markdown("""
+        <style>
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 90vh;
+            background-color: #f5f7fa;
+        }
+        .login-box {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            width: 400px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .login-box h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #1E1E1E;
+        }
+        .social-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .social-buttons button {
+            width: 48%;
+            background-color: #f1f1f1 !important;
+            color: #333 !important;
+            border-radius: 8px !important;
+        }
+        .email-input input, .password-input input {
+            border-radius: 8px !important;
+            padding: 10px;
+        }
+        .login-box small {
+            display: block;
+            text-align: right;
+            margin-top: 10px;
+            color: #357ABD;
+            cursor: pointer;
+        }
+        .submit-btn button {
+            width: 100%;
+            background-color: #4A90E2 !important;
+            color: white !important;
+            border-radius: 8px !important;
+            padding: 10px;
+        }
+        .bottom-text {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 0.9em;
+            color: #555;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+    st.markdown('<div class="login-container"><div class="login-box">', unsafe_allow_html=True)
+    st.markdown('<h2>Log in to your Account</h2>', unsafe_allow_html=True)
 
-    if st.button("Login"):
-        if username == "admin" and password == "password123":
-            st.session_state.authenticated = True
+    # Social login buttons
+    col1, col2 = st.columns(2)
+    with col1:
+        st.button("Google")
+    with col2:
+        st.button("Facebook")
+
+    st.markdown("<hr style='margin: 20px 0;'>", unsafe_allow_html=True)
+
+    email = st.text_input("Email", key="email")
+    password = st.text_input("Password", type="password", key="password")
+
+    st.markdown('<small>Forgot Password?</small>', unsafe_allow_html=True)
+
+    if st.button("Log in"):
+        if email == "admin@example.com" and password == "password123":
             st.success("Login successful!")
-            st.rerun()  # ✅ Correct usage
+            st.session_state.authenticated = True
         else:
-            st.error("Invalid username or password")
+            st.error("Invalid email or password")
+
+    st.markdown('<div class="bottom-text">Don’t have an account? <b style="color:#4A90E2">Create an account</b></div>', unsafe_allow_html=True)
+    st.markdown('</div></div>', unsafe_allow_html=True)
 
 def main():
     # Initialize session state for login
