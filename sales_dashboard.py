@@ -1393,7 +1393,7 @@ def login():
         if username == "admin" and password == "password123":
             st.session_state.authenticated = True
             st.success("Login successful!")
-            st._rerun()
+            st.rerun()  # ✅ Correct usage
         else:
             st.error("Invalid username or password")
 
