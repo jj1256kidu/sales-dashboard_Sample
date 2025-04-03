@@ -1387,12 +1387,14 @@ def login():
     st.markdown("""
         <style>
             body {
-                background-color: #0f111a;
+                background-color: #0d0f11;
                 font-family: 'Segoe UI', sans-serif;
             }
 
-            .login-bg {
-                background: linear-gradient(135deg, rgba(15,17,26,0.9), rgba(26,28,39,0.9));
+            .green-login-bg {
+                background: url('https://images.unsplash.com/photo-1633763561139-059893d3bb47?auto=format&fit=crop&w=1470&q=80');
+                background-size: cover;
+                background-position: center;
                 height: 100vh;
                 display: flex;
                 justify-content: center;
@@ -1400,81 +1402,91 @@ def login():
                 padding-top: 10vh;
             }
 
-            .glass-card {
-                background: rgba(255, 255, 255, 0.05);
+            .login-panel {
+                background: rgba(255, 255, 255, 0.08);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
                 border-radius: 16px;
-                padding: 40px;
-                width: 380px;
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+                padding: 35px;
+                width: 400px;
                 color: white;
                 text-align: center;
+                box-shadow: 0 12px 30px rgba(0, 255, 120, 0.25);
+                border: 1px solid rgba(0,255,120, 0.2);
             }
 
-            .glass-card h2 {
-                font-size: 28px;
+            .login-panel h2 {
+                font-size: 24px;
                 font-weight: 600;
                 margin-bottom: 20px;
-                color: #ffffff;
+                color: #00ff9f;
+            }
+
+            .login-panel img {
+                border-radius: 50%;
+                width: 70px;
+                height: 70px;
+                margin-bottom: 10px;
+                box-shadow: 0 0 15px rgba(0, 255, 120, 0.5);
             }
 
             .stTextInput>div>input {
-                background: rgba(255, 255, 255, 0.1);
-                border: none;
-                border-radius: 8px;
-                padding: 14px;
-                color: white;
+                background-color: rgba(0,255,120, 0.1);
+                border: 1px solid #00ff9f;
+                border-radius: 10px;
+                padding: 12px;
                 font-size: 15px;
+                color: #fff;
             }
 
             .stTextInput>div>input::placeholder {
-                color: #bbb;
+                color: #b2ffdf;
             }
 
             .stButton>button {
                 width: 100%;
-                background: linear-gradient(90deg, #6E75FF 0%, #A66EFF 100%);
-                color: white;
+                background: linear-gradient(90deg, #00ff9f 0%, #04e762 100%);
+                color: black;
                 border: none;
-                padding: 14px;
+                padding: 12px;
                 font-size: 16px;
-                font-weight: 600;
+                font-weight: 700;
                 border-radius: 10px;
                 margin-top: 20px;
                 cursor: pointer;
-                transition: all 0.3s ease;
+                transition: 0.3s ease;
             }
 
             .stButton>button:hover {
-                background: linear-gradient(90deg, #A66EFF 0%, #6E75FF 100%);
-                transform: translateY(-2px);
+                background: linear-gradient(90deg, #04e762 0%, #00ff9f 100%);
+                transform: scale(1.02);
             }
 
             .footer {
                 margin-top: 20px;
-                font-size: 13px;
-                color: #aaa;
+                font-size: 12px;
+                color: #aaffcc;
             }
 
             .footer a {
-                color: #A66EFF;
+                color: #00ff9f;
+                font-weight: 600;
                 text-decoration: none;
-                font-weight: 500;
             }
 
             [data-testid="stSidebar"], #MainMenu, footer { display: none; }
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="login-bg"><div class="glass-card">', unsafe_allow_html=True)
+    st.markdown('<div class="green-login-bg"><div class="login-panel">', unsafe_allow_html=True)
 
-    st.markdown("<h2>Sign in to Dashboard</h2>", unsafe_allow_html=True)
-    username = st.text_input("Email", placeholder="Enter your email", key="login_user")
-    password = st.text_input("Password", type="password", placeholder="Enter password", key="login_pass")
+    st.markdown('<img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Avatar" />', unsafe_allow_html=True)
+    st.markdown("<h2>Login System</h2>", unsafe_allow_html=True)
 
-    if st.button("Sign In"):
+    username = st.text_input("E-mail", placeholder="Example@address.com", key="login_user")
+    password = st.text_input("Password", placeholder="Enter your password", type="password", key="login_pass")
+
+    if st.button("Login"):
         if username == "jobin" and password == "1kspl":
             st.session_state.authenticated = True
             st.success("Login successful!")
@@ -1484,10 +1496,11 @@ def login():
 
     st.markdown("""
         <div class="footer">
-            Forgot your password? <a href="#">Reset</a>
+            Forgot your password? <a href="#">Click here</a>
         </div>
     </div></div>
     """, unsafe_allow_html=True)
+
 
 def main():
     # Initialize session state for login
