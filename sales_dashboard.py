@@ -1128,34 +1128,30 @@ def show_sales_team():
     with col6:
         probability_options = ["All Probability", "0-25%", "26-50%", "51-75%", "76-100%", "Custom Range"]
         filters['probability_filter'] = st.selectbox("📈 Probability", options=probability_options)
-        min_prob = filters.get('min_prob', 0)
-        max_prob = filters.get('max_prob', 100)
+        # Step 1: Get current values safely
+        min_prob_init = str(filters.get('min_prob', 0))
+        max_prob_init = str(filters.get('max_prob', 100))
         if filters.get('probability_filter') == "Custom Range":
             col6a, col6b = st.columns(2)
             with col6a:
-                min_prob = st.number_input(
-                    "Min %",
-                    min_value=0,
-                    max_value=100,
-                    value=min_prob,
-                    step=1,
-                    key="min_prob"
-                )
+                min_prob_input = st.text_input("Min %", value=min_prob_init, key="custom_min_prob_input")
 
             with col6b:
-                max_prob = st.number_input(
-                    "Max %",
-                    min_value=0,
-                    max_value=100,
-                    value=max_prob,
-                    step=1,
-                    key="max_prob"
-            )
+                max_prob_input = st.text_input("Max %", value=max_prob_init, key="custom_max_prob_input")
+                    # Step 3: Validate and convert
+            try:
+                min_prob = int(min_prob_input)
+            except ValueError:
+                min_prob = 0
+        
+            try:
+                max_prob = int(max_prob_input)
+            except ValueError:
+                max_prob = 100
 
-        # Store values for later use
-        filters['min_prob'] = min_prob
-        filters['max_prob'] = max_prob
-        filters['custom_prob_range'] = f"{min_prob}-{max_prob}%"
+            filters['min_prob'] = min_prob
+            filters['max_prob'] = max_prob
+            filters['custom_prob_range'] = f"{min_prob}-{max_prob}%"
 
     with col7:
         status_options = ["All Status", "Committed for the Month", "Upsides for the Month"]
