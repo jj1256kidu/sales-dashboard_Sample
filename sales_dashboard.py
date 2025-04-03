@@ -1384,110 +1384,112 @@ def show_detailed():
     
     st.dataframe(df, use_container_width=True)
 def login():
+    st.set_page_config(page_title="Login", layout="wide")
+    
     st.markdown("""
-        <style>
-            body {
-                background-color: #0d0f11;
-                font-family: 'Segoe UI', sans-serif;
-            }
+    <style>
+        body {
+            background-color: #0f1218;
+            font-family: 'Segoe UI', sans-serif;
+        }
 
-            .green-login-bg {
-                background: url('https://images.unsplash.com/photo-1633763561139-059893d3bb47?auto=format&fit=crop&w=1470&q=80');
-                background-size: cover;
-                background-position: center;
-                height: 100vh;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                padding-top: 10vh;
-            }
+        .login-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
 
-            .login-panel {
-                background: rgba(255, 255, 255, 0.08);
-                backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
-                border-radius: 16px;
-                padding: 35px;
-                width: 400px;
-                color: white;
-                text-align: center;
-                box-shadow: 0 12px 30px rgba(0, 255, 120, 0.25);
-                border: 1px solid rgba(0,255,120, 0.2);
-            }
+        .login-left {
+            flex: 1;
+            background: #0f1218;
+            padding: 60px 80px;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
 
-            .login-panel h2 {
-                font-size: 24px;
-                font-weight: 600;
-                margin-bottom: 20px;
-                color: #00ff9f;
-            }
+        .login-left h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
 
-            .login-panel img {
-                border-radius: 50%;
-                width: 70px;
-                height: 70px;
-                margin-bottom: 10px;
-                box-shadow: 0 0 15px rgba(0, 255, 120, 0.5);
-            }
+        .login-left p {
+            color: #9ca3af;
+            font-size: 1rem;
+            margin-bottom: 40px;
+        }
 
-            .stTextInput>div>input {
-                background-color: rgba(0,255,120, 0.1);
-                border: 1px solid #00ff9f;
-                border-radius: 10px;
-                padding: 12px;
-                font-size: 15px;
-                color: #fff;
-            }
+        .stTextInput>div>input {
+            background-color: #1a1f2e;
+            border: 1px solid #3b4b61;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+            color: #ffffff;
+        }
 
-            .stTextInput>div>input::placeholder {
-                color: #b2ffdf;
-            }
+        .stTextInput>div>input::placeholder {
+            color: #888;
+        }
 
-            .stButton>button {
-                width: 100%;
-                background: linear-gradient(90deg, #00ff9f 0%, #04e762 100%);
-                color: black;
-                border: none;
-                padding: 12px;
-                font-size: 16px;
-                font-weight: 700;
-                border-radius: 10px;
-                margin-top: 20px;
-                cursor: pointer;
-                transition: 0.3s ease;
-            }
+        .stButton>button {
+            background-color: #10b981;
+            color: white;
+            font-weight: 600;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s ease;
+            width: 100%;
+        }
 
-            .stButton>button:hover {
-                background: linear-gradient(90deg, #04e762 0%, #00ff9f 100%);
-                transform: scale(1.02);
-            }
+        .stButton>button:hover {
+            background-color: #0ea96b;
+        }
 
-            .footer {
-                margin-top: 20px;
-                font-size: 12px;
-                color: #aaffcc;
-            }
+        .login-footer {
+            margin-top: 15px;
+            font-size: 13px;
+            color: #6b7280;
+        }
 
-            .footer a {
-                color: #00ff9f;
-                font-weight: 600;
-                text-decoration: none;
-            }
+        .login-footer a {
+            color: #10b981;
+            text-decoration: none;
+            font-weight: bold;
+        }
 
-            [data-testid="stSidebar"], #MainMenu, footer { display: none; }
-        </style>
+        .login-right {
+            flex: 1;
+            background: url('https://assets-global.website-files.com/63e4b4b8c40f871f49f8aa8d/63e4b4b8c40f875257f8aaeb_Hero_globe-p-1080.webp') no-repeat center center;
+            background-size: cover;
+            filter: brightness(1.2);
+        }
+
+        [data-testid="stSidebar"], #MainMenu, footer {
+            display: none;
+        }
+    </style>
+
+    <div class="login-container">
+        <div class="login-left">
+            <h1>Login</h1>
+            <p>Step into the world of performance insights</p>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="green-login-bg"><div class="login-panel">', unsafe_allow_html=True)
+    # Login fields (inside styled block)
+    email = st.text_input("Email", placeholder="mail@example.com")
+    password = st.text_input("Password", placeholder="Enter password", type="password")
+    
+    login_clicked = st.button("Login")
 
-    st.markdown('<img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Avatar" />', unsafe_allow_html=True)
-    st.markdown("<h2>Login System</h2>", unsafe_allow_html=True)
-
-    username = st.text_input("E-mail", placeholder="Example@address.com", key="login_user")
-    password = st.text_input("Password", placeholder="Enter your password", type="password", key="login_pass")
-
-    if st.button("Login"):
-        if username == "jobin" and password == "1kspl":
+    if login_clicked:
+        if email == "jobin" and password == "1kspl":
             st.session_state.authenticated = True
             st.success("Login successful!")
             st.rerun()
@@ -1495,13 +1497,14 @@ def login():
             st.error("Invalid credentials")
 
     st.markdown("""
-        <div class="footer">
-            Forgot your password? <a href="#">Click here</a>
+        <div class="login-footer">
+            Forgot password? <a href="#">Reset</a><br>
+            Not registered yet? <a href="#">Create an account</a>
         </div>
-    </div></div>
+        </div>
+        <div class="login-right"></div>
+    </div>
     """, unsafe_allow_html=True)
-
-
 def main():
     # Initialize session state for login
     if 'authenticated' not in st.session_state:
