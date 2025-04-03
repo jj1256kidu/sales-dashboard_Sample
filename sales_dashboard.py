@@ -64,8 +64,6 @@ if 'reset_triggered' not in st.session_state:
     st.session_state.reset_triggered = False
 if 'selected_team_member' not in st.session_state:
     st.session_state.selected_team_member = None
-if 'sales_target' not in st.session_state:
-    st.session_state.sales_target = 5000.0
 
 # Custom CSS for modern styling
 st.markdown("""
@@ -336,15 +334,9 @@ def calculate_team_metrics(df):
     # Fill NaN values with 0
     team_metrics = team_metrics.fillna(0)
     
-    # Add Sales Target (default 5000L for demonstration)
-    team_metrics['Sales Target'] = 5000
-    
     # Calculate Pipeline Deals with safe null handling
     pipeline_deals = df[~df['Is_Won']].groupby('Sales Owner').size()
     team_metrics['Pipeline Deals'] = team_metrics['Sales Owner'].map(pipeline_deals).fillna(0).astype(int)
-    
-    # Calculate derived metrics with safe division
-    team_metrics['Achievement %'] = (team_metrics['Closed Won'] / team_metrics['Sales Target'] * 100).fillna(0).round(0).astype(int)
     
     # Safe calculation of Win Rate to avoid division by zero
     total_deals = team_metrics['Closed Deals'] + team_metrics['Pipeline Deals']
@@ -474,77 +466,12 @@ def show_overview():
     st.title("Sales Performance Overview")
     
     df = st.session_state.df.copy()
-    
-    # Initialize target if not in session state
-    if 'sales_target' not in st.session_state:
-        st.session_state.sales_target = 5000.0
-
-    # Sales Target Section with simple styling
-    st.markdown("### 🎯 Annual Sales Target")
-    
-    # Simple editable input with clean styling
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        new_target = st.number_input(
-            "Enter Target (in Lakhs)", 
-            value=float(st.session_state.get('sales_target', 5000.0)), 
-            format="%.2f",
-            key="overview_target_input"
-        )
-
-    # Save it to session state if changed
-    if new_target != st.session_state.get('sales_target', 0):
-        st.session_state.sales_target = new_target
-        st.rerun()
-
-    # Show target value in a clean format
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown(f"""
-            <div style='text-align: center; font-size: 32px; font-weight: 700; color: red;'>
-                ₹{new_target:,.2f}L
-            </div>
-        """, unsafe_allow_html=True)
-
-    # Calculate achievement after target is set
     won_deals = df[df['Sales Stage'].str.contains('Won', case=False, na=False)]
     won_amount = won_deals['Amount'].sum() / 100000
-    achievement_pct = (won_amount / st.session_state.sales_target * 100) if st.session_state.sales_target > 0 else 0
-    
+
     if 'Sales Stage' in df.columns and 'Amount' in df.columns:
-        # I. Target vs Closed Won
-        st.markdown("""
-            <div style='background: linear-gradient(90deg, #2ecc71 0%, #27ae60 100%); padding: 15px; border-radius: 10px; margin-bottom: 30px;'>
-                <h3 style='color: white; margin: 0; text-align: center; font-size: 1.8em; font-weight: 600;'>Target vs Closed Won</h3>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        # Enhanced horizontal progress bar with metrics
-        st.markdown(f"""
-            <div style='background: #f0f2f6; padding: 15px; border-radius: 12px; margin-top: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
-                <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;'>
-                    <div>
-                        <h3 style='margin: 0; color: #2ecc71; font-size: 1.2em; font-weight: 500;'>Closed Won</h3>
-                        <h2 style='margin: 5px 0; color: #2ecc71; font-size: 2.8em; font-weight: 700; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);'>₹{won_amount:,.2f}L</h2>
-                    </div>
-                    <div style='text-align: right;'>
-                        <h3 style='margin: 0; color: #e74c3c; font-size: 1.2em; font-weight: 500;'>Target</h3>
-                        <h2 style='margin: 5px 0; color: #e74c3c; font-size: 2.8em; font-weight: 700; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);'>₹{new_target:,.2f}L</h2>
-                    </div>
-                </div>
-                <div style='background: #e74c3c; height: 40px; border-radius: 20px; overflow: hidden; position: relative; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);'>
-                    <div style='background: #2ecc71; height: 100%; width: {min(100, achievement_pct)}%; transition: width 0.5s ease-in-out;'></div>
-                    <div style='position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: 600; font-size: 1.2em; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);'>
-                        {int(achievement_pct)}% Complete
-                    </div>
-                </div>
-                <div style='display: flex; justify-content: space-between; margin-top: 5px; color: #666; font-size: 1.1em; font-weight: 400;'>
-                    <span>₹0L</span>
-                    <span>₹{new_target:,.1f}L</span>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-        
+        # Removed: Target vs Closed Won section
+
         # II. Practice
         st.markdown("""
             <div style='background: linear-gradient(90deg, #4A90E2 0%, #357ABD 100%); padding: 15px; border-radius: 10px; margin-bottom: 30px;'>
@@ -864,8 +791,7 @@ def show_overview():
             hole=.4,
             textinfo='label+percent+value',
             texttemplate='%{label}<br>%{percent}<br>' + format_amount('%{value}'),
-            textfont=dict(size=14, family='Segoe UI', weight='bold'),
-            marker=dict(colors=['#4A90E2', '#2ecc71', '#e74c3c', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'])
+            textfont=dict(size=14, family='Segoe UI', weight='bold')
         )])
         
         fig_focus.update_layout(
@@ -948,7 +874,7 @@ def show_overview():
             y=monthly_data['Amount'],
             mode='lines+markers',
             name=deal_type,
-            line=dict(color=color, width=3),
+            line=dict(width=3, color=color),
             marker=dict(size=8, color=color),
             text=monthly_data['Amount'].apply(lambda x: f"₹{int(x)}L"),
             textposition='top center',
@@ -1203,14 +1129,11 @@ def show_sales_team():
         status_options = ["All Status", "Committed for the Month", "Upsides for the Month"]
         filters['status_filter'] = st.selectbox("🎯 Status", options=status_options)
         
-        # Handle custom status filters
         if filters['status_filter'] == "Committed for the Month":
-            # Filter for deals with high probability (>75%) and expected to close this month
             current_month = pd.Timestamp.now().strftime('%B')
             mask = (df['Month'] == current_month) & (df['Probability_Num'] > 75)
             filtered_df = df[mask]
         elif filters['status_filter'] == "Upsides for the Month":
-            # Filter for deals with medium probability (25-75%) and expected to close this month
             current_month = pd.Timestamp.now().strftime('%B')
             mask = (df['Month'] == current_month) & (df['Probability_Num'].between(25, 75))
             filtered_df = df[mask]
@@ -1228,7 +1151,7 @@ def show_sales_team():
     """, unsafe_allow_html=True)
 
     # Create columns for metrics
-    m1, m2, m3, m4 = st.columns(4)
+    m1, m2, m3 = st.columns(3)
 
     # Get the metrics values
     current_pipeline = filtered_df[~filtered_df['Is_Won']]['Amount_Lacs'].sum()
@@ -1286,25 +1209,6 @@ def show_sales_team():
                 </div>
                 <div style='color: white; font-size: 1.8em; font-weight: 800;'>
                     ₹{int(closed_won)}L
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    with m4:
-        achievement = (closed_won / st.session_state.sales_target * 100) if st.session_state.sales_target > 0 else 0
-        st.markdown(f"""
-            <div style='
-                background: linear-gradient(135deg, #F39C12 0%, #F1C40F 100%);
-                padding: 20px;
-                border-radius: 10px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                text-align: center;
-            '>
-                <div style='color: white; font-size: 1.1em; font-weight: 600; margin-bottom: 8px;'>
-                    📈 Achieved %
-                </div>
-                <div style='color: white; font-size: 1.8em; font-weight: 800;'>
-                    {int(achievement)}%
                 </div>
             </div>
         """, unsafe_allow_html=True)
@@ -1420,9 +1324,6 @@ def show_sales_team():
     
     team_metrics.columns = ['Sales Owner', 'Closed Won', 'Closed Deals']
     
-    # Add Sales Target (default 5000L for demonstration)
-    team_metrics['Sales Target'] = 5000  # This can be customized per team member if data is available
-    
     # Calculate Current Pipeline
     pipeline_df = df[~df['Sales Stage'].str.contains('Won', case=False, na=False)]
     total_pipeline = round(pipeline_df.groupby('Sales Owner')['Amount'].sum() / 100000, 1)
@@ -1438,33 +1339,26 @@ def show_sales_team():
     
     team_metrics['Weighted Projections'] = team_metrics['Sales Owner'].apply(calculate_weighted_projection)
     
-    # Calculate Achievement Percentage
-    team_metrics['Achievement %'] = round((team_metrics['Closed Won'] / team_metrics['Sales Target'] * 100), 1)
-    
+    # Calculate Win Rate
     total_deals = pipeline_df.groupby('Sales Owner').size()
     team_metrics['Pipeline Deals'] = team_metrics['Sales Owner'].map(total_deals)
-    
     team_metrics['Win Rate'] = round((team_metrics['Closed Deals'] / (team_metrics['Closed Deals'] + team_metrics['Pipeline Deals']) * 100), 1)
     team_metrics = team_metrics.sort_values('Current Pipeline', ascending=False)
     
     # Format the display data
     summary_data = team_metrics.copy()
-    summary_data['Sales Target'] = summary_data['Sales Target'].apply(lambda x: f"₹{x:,}L")
     summary_data['Current Pipeline'] = summary_data['Current Pipeline'].apply(lambda x: f"₹{x:,}L")
     summary_data['Weighted Projections'] = summary_data['Weighted Projections'].apply(lambda x: f"₹{x:,}L")
     summary_data['Closed Won'] = summary_data['Closed Won'].apply(lambda x: f"₹{x:,}L")
-    summary_data['Achievement %'] = summary_data['Achievement %'].apply(lambda x: f"{x}%")
     summary_data['Win Rate'] = summary_data['Win Rate'].apply(lambda x: f"{x}%")
     
     # Display the enhanced team performance table
     st.dataframe(
         summary_data[[
             'Sales Owner',
-            'Sales Target',
             'Current Pipeline',
             'Weighted Projections',
             'Closed Won',
-            'Achievement %',
             'Pipeline Deals',
             'Closed Deals',
             'Win Rate'
@@ -1517,4 +1411,4 @@ def main():
         show_detailed()
 
 if __name__ == "__main__":
-    main() 
+    main()
