@@ -1,11 +1,4 @@
 import streamlit as st
-# ✅ Fix placement
-st.set_page_config(
-    page_title="Sales Dashboard",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -13,7 +6,13 @@ from datetime import datetime
 import numpy as np
 import io
 from functools import lru_cache
-
+# ✅ Fix placement
+st.set_page_config(
+    page_title="Sales Dashboard",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 # Format helper functions
 def format_amount(x):
     try:
@@ -1512,6 +1511,7 @@ def login():
         <div class="login-right"></div>
     </div>
     """, unsafe_allow_html=True)
+
 def main():
     # Initialize session state for login
     if 'authenticated' not in st.session_state:
