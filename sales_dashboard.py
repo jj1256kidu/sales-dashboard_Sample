@@ -6,7 +6,7 @@ from datetime import datetime
 import numpy as np
 import io
 from functools import lru_cache
-# ✅ Fix placement
+# ✅ Must be the FIRST Streamlit command
 st.set_page_config(
     page_title="Sales Dashboard",
     page_icon="📊",
