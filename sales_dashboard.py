@@ -6,38 +6,8 @@ from datetime import datetime
 import numpy as np
 import io
 from functools import lru_cache
-import hashlib
 from auth import is_authenticated, get_current_user, show_login_page, logout
-
-# Set page config must be the first Streamlit command
-st.set_page_config(
-    page_title="Sales Dashboard",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-# Initialize session state
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-if "username" not in st.session_state:
-    st.session_state.username = None
-if "current_view" not in st.session_state:
-    st.session_state.current_view = "data_input"
-if "df" not in st.session_state:
-    st.session_state.df = None
-if "date_filter" not in st.session_state:
-    st.session_state.date_filter = None
-if "selected_practice" not in st.session_state:
-    st.session_state.selected_practice = "All"
-if "selected_stage" not in st.session_state:
-    st.session_state.selected_stage = "All"
-if "reset_triggered" not in st.session_state:
-    st.session_state.reset_triggered = False
-if "selected_team_member" not in st.session_state:
-    st.session_state.selected_team_member = None
-if "sales_target" not in st.session_state:
-    st.session_state.sales_target = 0.0
+import hashlib
 
 # Format helper functions
 def format_amount(x):
@@ -73,251 +43,250 @@ def format_number(x):
     except:
         return "0"
 
+# Set page config
+st.set_page_config(
+    page_title="Sales Dashboard",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Initialize session state
+if 'df' not in st.session_state:
+    st.session_state.df = None
+if 'current_view' not in st.session_state:
+    st.session_state.current_view = 'data_input'
+if 'date_filter' not in st.session_state:
+    st.session_state.date_filter = None
+if 'selected_practice' not in st.session_state:
+    st.session_state.selected_practice = 'All'
+if 'selected_stage' not in st.session_state:
+    st.session_state.selected_stage = 'All'
+if 'reset_triggered' not in st.session_state:
+    st.session_state.reset_triggered = False
+if 'selected_team_member' not in st.session_state:
+    st.session_state.selected_team_member = None
+if 'sales_target' not in st.session_state:
+    st.session_state.sales_target = 0.0
+
 # Custom CSS for modern styling
 st.markdown("""
 <style>
-    /* Modern dark theme colors */
+    /* Modern theme colors */
     :root {
         --primary-color: #4A90E2;
-        --background-color: #0B0B1E;
-        --secondary-background-color: #1E1E2F;
+        --background-color: #1E1E1E;
+        --secondary-background-color: #252526;
         --text-color: #FFFFFF;
-        --accent-color: #6C63FF;
         --font-family: 'Segoe UI', sans-serif;
-        --card-background: rgba(255, 255, 255, 0.05);
-        --border-color: rgba(255, 255, 255, 0.1);
-        --shadow-color: rgba(0, 0, 0, 0.2);
-        --input-max-width: 400px;
-        --container-padding: 1rem;
     }
 
-    /* Responsive breakpoints */
-    @media (max-width: 768px) {
-        :root {
-            --container-padding: 0.5rem;
-        }
-        
-        .stApp {
-            padding: var(--container-padding) !important;
-        }
-        
-        [data-testid="stSidebar"] {
-            padding: 1rem !important;
-        }
-        
-        .custom-header {
-            padding: 1.5rem;
-        }
-        
-        .custom-header h1 {
-            font-size: 2em;
-        }
-        
-        .metric-container {
-            padding: 1rem;
-        }
-        
-        .metric-value {
-            font-size: 2em;
-        }
-    }
-
-    /* Main container and background */
-    .stApp {
-        background: var(--background-color) !important;
+    /* Main container styling */
+    .main {
+        background-color: var(--background-color);
         color: var(--text-color);
         font-family: var(--font-family);
-        line-height: 1.6;
-        padding: var(--container-padding) !important;
     }
 
-    /* Sidebar styling */
-    [data-testid="stSidebar"] {
-        background-color: var(--secondary-background-color) !important;
-        border-right: 1px solid var(--border-color);
-        padding: 2rem 1rem !important;
-        transition: all 0.3s ease;
+    /* Card styling */
+    .stCard {
+        background-color: var(--secondary-background-color);
+        border-radius: 10px;
+        padding: 15px;
+        margin: 30px 0;
+        border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    [data-testid="stSidebar"] .block-container {
-        padding: 0 !important;
-    }
-
-    /* Custom header with animation */
-    .custom-header {
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
-        padding: 2.5rem;
-        border-radius: 15px;
-        margin-bottom: 2.5rem;
-        box-shadow: 0 4px 15px var(--shadow-color);
-        transform: translateY(0);
-        transition: all 0.3s ease;
-    }
-
-    .custom-header:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 25px var(--shadow-color);
-    }
-
-    .custom-header h1 {
-        color: white;
+    /* Number formatting */
+    .big-number {
         font-size: 2.8em;
         font-weight: 700;
-        text-align: center;
-        margin: 0;
-        text-shadow: 2px 2px 4px var(--shadow-color);
-        letter-spacing: 0.5px;
-        animation: glow 2s ease-in-out infinite alternate;
+        color: #2ecc71;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        letter-spacing: -1px;
     }
 
-    @keyframes glow {
-        from {
-            text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px var(--accent-color);
-        }
-        to {
-            text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px var(--accent-color);
-        }
-    }
-
-    /* Input fields and form elements */
-    .stTextInput > div > div > input,
-    .stSelectbox > div > div {
-        max-width: var(--input-max-width) !important;
-        margin: 0 auto !important;
-        background: var(--card-background) !important;
-        border: 1px solid var(--border-color) !important;
-        border-radius: 8px;
-        padding: 0.8rem;
-        color: white !important;
-        transition: all 0.3s ease;
-    }
-
-    .stTextInput > div > div > input:focus,
-    .stSelectbox > div > div:focus-within {
-        border-color: var(--accent-color) !important;
-        box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.2);
-    }
-
-    /* Welcome message with depth */
-    .welcome-message {
-        background: rgba(255, 255, 255, 0.1);
-        padding: 1.5rem;
-        border-radius: 12px;
-        margin-bottom: 1.5rem;
-        backdrop-filter: blur(10px);
-        border: 1px solid var(--border-color);
-        box-shadow: 0 4px 6px var(--shadow-color);
-        transform: translateY(0);
-        transition: all 0.3s ease;
-    }
-
-    .welcome-message:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 15px var(--shadow-color);
-    }
-
-    .welcome-message h3 {
-        color: white;
-        margin: 0;
-        font-size: 1.3em;
+    .metric-value {
+        font-size: 2em;
         font-weight: 600;
-        letter-spacing: 0.5px;
-        text-shadow: 1px 1px 2px var(--shadow-color);
+        color: #4A90E2;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
     }
 
-    /* Checkbox styling */
-    .stCheckbox > label {
-        margin-left: 0.5rem !important;
-        color: white !important;
+    .metric-label {
+        font-size: 1.2em;
+        color: #333;
+        margin-bottom: 5px;
         font-weight: 500;
-        font-size: 1.1em;
     }
 
-    /* Navigation */
-    .nav-title {
-        color: white;
+    /* Section headers */
+    .section-header {
         font-size: 1.8em;
         font-weight: 700;
-        margin-bottom: 2rem;
-        letter-spacing: 0.5px;
-        text-shadow: 1px 1px 2px var(--shadow-color);
+        color: #2c3e50;
+        margin: 30px 0;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
     }
 
-    /* Radio buttons in sidebar */
-    [data-testid="stSidebar"] .stRadio > label {
-        color: white !important;
+    /* Chart text styling */
+    .js-plotly-plot .plotly .main-svg {
+        font-size: 14px;
         font-weight: 500;
-        font-size: 1.1em;
-        padding: 0.8rem 0;
-        transition: all 0.3s ease;
     }
 
-    [data-testid="stSidebar"] .stRadio > label:hover {
-        color: var(--accent-color) !important;
-        transform: translateX(5px);
+    /* Table styling */
+    .dataframe {
+        font-size: 1.2em;
+        background-color: white;
+        border-radius: 8px;
+        padding: 15px;
     }
 
-    [data-testid="stSidebar"] .stRadio > div {
-        gap: 1rem;
-    }
-
-    /* Button styling with hover effects */
-    .stButton > button {
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+    .dataframe th {
+        background-color: #4A90E2;
         color: white;
-        border: none;
-        padding: 0.8rem 2.5rem;
-        border-radius: 10px;
-        font-weight: 600;
+        font-weight: 700;
+        padding: 15px;
         font-size: 1.1em;
+    }
+
+    .dataframe td {
+        padding: 12px;
+        border-bottom: 1px solid #eee;
+        font-weight: 500;
+    }
+
+    /* Upload container styling */
+    .upload-container {
+        background-color: rgba(74, 144, 226, 0.1);
+        border-radius: 10px;
+        padding: 30px;
+        margin: 20px 0;
+        border: 2px dashed rgba(74, 144, 226, 0.3);
+        text-align: center;
+    }
+
+    /* Button styling */
+    .stButton>button {
+        background-color: var(--primary-color);
+        color: white;
+        border-radius: 5px;
+        padding: 10px 20px;
+        border: none;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 6px var(--shadow-color);
-        max-width: var(--input-max-width);
-        margin: 0 auto;
-        display: block;
     }
 
-    .stButton > button:hover {
+    .stButton>button:hover {
+        background-color: #357ABD;
         transform: translateY(-2px);
-        box-shadow: 0 6px 12px var(--shadow-color);
-        background: linear-gradient(135deg, var(--accent-color) 0%, var(--primary-color) 100%);
-    }
-
-    /* Grid layout for metrics */
-    .metric-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
-        margin: 2rem 0;
-    }
-
-    /* Responsive columns */
-    @media (max-width: 768px) {
-        .stColumns {
-            flex-direction: column !important;
-        }
-        
-        .stColumns > div {
-            width: 100% !important;
-        }
-    }
-
-    /* Filter section with improved layout */
-    .filter-section {
-        background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, rgba(108, 99, 255, 0.1) 100%);
-        border-radius: 12px;
-        padding: 2rem;
-        margin-bottom: 2.5rem;
-        border: 1px solid var(--border-color);
-        box-shadow: 0 4px 6px var(--shadow-color);
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1.5rem;
     }
 
     /* Hide Streamlit branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
+
+    /* Custom header */
+    .custom-header {
+        background: linear-gradient(90deg, #4A90E2 0%, #357ABD 100%);
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        color: white;
+        text-align: center;
+    }
+
+    /* Info box */
+    .info-box {
+        background-color: rgba(74, 144, 226, 0.1);
+        border-left: 4px solid #4A90E2;
+        padding: 15px;
+        border-radius: 4px;
+        margin: 10px 0;
+    }
+
+    /* Container styling */
+    .container {
+        margin: 30px 0;
+        padding: 15px;
+    }
+
+    /* Graph container */
+    .graph-container {
+        margin: 30px 0;
+        padding: 15px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Metric container */
+    .metric-container {
+        margin: 30px 0;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 10px;
+    }
+
+    /* Section divider */
+    .section-divider {
+        margin: 30px 0;
+        border-top: 1px solid #eee;
+    }
+
+    /* Custom styling for number input */
+    [data-testid="stNumberInput"] {
+        position: relative;
+        background: transparent !important;
+    }
+    [data-testid="stNumberInput"] > div > div > input {
+        color: white !important;
+        font-size: 1.8em !important;
+        font-weight: 800 !important;
+        text-align: center !important;
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+    }
+    /* Hide the increment/decrement buttons */
+    [data-testid="stNumberInput"] > div > div > div {
+        display: none !important;
+    }
+    /* Container styling */
+    div[data-testid="column"] > div > div > div > div > div {
+        background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+
+    /* Hide increment buttons */
+    [data-testid="stNumberInput"] input[type="number"] {
+        -moz-appearance: textfield;
+    }
+    [data-testid="stNumberInput"] input[type="number"]::-webkit-outer-spin-button,
+    [data-testid="stNumberInput"] input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    
+    /* Style the input field */
+    [data-testid="stNumberInput"] {
+        background: transparent;
+    }
+    
+    /* Style the display value */
+    .target-value {
+        font-family: 'Segoe UI', sans-serif;
+        font-size: 2.5em;
+        font-weight: 800;
+        color: #FF6B6B;
+        text-align: center;
+        padding: 20px;
+        margin: 10px 0;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -392,9 +361,8 @@ def filter_dataframe(df, filters):
     if filters.get('search'):
         search_mask = pd.Series(False, index=df.index)
         search = filters['search'].lower()
-        for col in ['Organization Name', 'Opportunity Name', 'Sales Owner', 'Sales Stage', 'KritiKal Focus Areas']:
-            if col in df.columns:
-                search_mask |= df[col].astype(str).str.lower().str.contains(search, na=False)
+        for col in ['Organization Name', 'Opportunity Name', 'Sales Owner', 'Sales Stage']:
+            search_mask |= df[col].astype(str).str.lower().str.contains(search, na=False)
         mask &= search_mask
     
     if filters.get('month_filter') != "All Months":
@@ -411,19 +379,21 @@ def filter_dataframe(df, filters):
             prob_range = filters['custom_prob_range'].split("-")
             min_prob = float(prob_range[0])
             max_prob = float(prob_range[1].rstrip("%"))
-            mask &= (df['Probability_Num'] >= min_prob) & (df['Probability_Num'] <= max_prob)
         else:
             prob_range = filters['probability_filter'].split("-")
             min_prob = float(prob_range[0])
             max_prob = float(prob_range[1].rstrip("%"))
-            mask &= (df['Probability_Num'] >= min_prob) & (df['Probability_Num'] <= max_prob)
+        mask &= (df['Probability_Num'] >= min_prob) & (df['Probability_Num'] <= max_prob)
     
     if filters.get('status_filter') != "All Status":
-        current_month = pd.Timestamp.now().strftime('%B')
         if filters['status_filter'] == "Committed for the Month":
+            current_month = pd.Timestamp.now().strftime('%B')
             mask &= (df['Month'] == current_month) & (df['Probability_Num'] > 75)
         elif filters['status_filter'] == "Upsides for the Month":
+            current_month = pd.Timestamp.now().strftime('%B')
             mask &= (df['Month'] == current_month) & (df['Probability_Num'].between(25, 75))
+        else:
+            mask &= df['Sales Stage'] == filters['status_filter']
     
     if filters.get('focus_filter') != "All Focus":
         mask &= df['KritiKal Focus Areas'] == filters['focus_filter']
@@ -1044,7 +1014,7 @@ def show_sales_team():
 
     metrics = calculate_team_metrics(df)
     
-    col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(8)
+    col1, col2, col3, col4 = st.columns(4)
     metric_style = """
         text-align: center;
         padding: 20px;
@@ -1130,7 +1100,7 @@ def show_sales_team():
 
     st.markdown("""
         <div style='padding: 15px; background: linear-gradient(to right, #f8f9fa, #e9ecef); border-radius: 10px; margin: 15px 0;'>
-            <h4 style='color: #2a5298; margin: 0; font-size: 1.1em; font-weight: 600;'>🔍 Team Filters</h4>
+            <h4 style='color: #2a5298; margin: 0; font-size: 1.1em; font-weight: 600;'>🔍 Filters</h4>
         </div>
     """, unsafe_allow_html=True)
 
@@ -1140,44 +1110,62 @@ def show_sales_team():
             'selected_member': st.selectbox(
                 "👤 Sales Owner",
                 options=["All Team Members"] + team_members,
-                key="team_view_member_filter"
+                key="team_member_filter"
             )
         }
     with col2:
-        filters['search'] = st.text_input("🔍 Search", placeholder="Search...", key="team_view_search_filter")
+        filters['search'] = st.text_input("🔍 Search", placeholder="Search...")
     with col3:
         fiscal_order = ['April', 'May', 'June', 'July', 'August', 'September', 
                        'October', 'November', 'December', 'January', 'February', 'March']
         available_months = df['Month'].dropna().unique().tolist()
         available_months.sort(key=lambda x: fiscal_order.index(x) if x in fiscal_order else len(fiscal_order))
-        filters['month_filter'] = st.selectbox("📅 Month", options=["All Months"] + available_months, key="team_view_month_filter")
+        filters['month_filter'] = st.selectbox("📅 Month", options=["All Months"] + available_months)
     with col4:
-        filters['quarter_filter'] = st.selectbox("📊 Quarter", options=["All Quarters", "Q1", "Q2", "Q3", "Q4"], key="team_view_quarter_filter")
+        filters['quarter_filter'] = st.selectbox("📊 Quarter", options=["All Quarters", "Q1", "Q2", "Q3", "Q4"])
     with col5:
-        filters['year_filter'] = st.selectbox("📅 Year", options=["All Years"] + sorted(df['Expected Close Date'].dt.year.unique().tolist()), key="team_view_year_filter")
+        filters['year_filter'] = st.selectbox("📅 Year", options=["All Years"] + sorted(df['Expected Close Date'].dt.year.unique().tolist()))
     with col6:
         probability_options = ["All Probability", "0-25%", "26-50%", "51-75%", "76-100%", "Custom Range"]
-        filters['probability_filter'] = st.selectbox("📈 Probability", options=probability_options, key="team_view_probability_filter")
-        if filters['probability_filter'] == "Custom Range":
+        filters['probability_filter'] = st.selectbox("📈 Probability", options=probability_options)
+        # Step 1: Get current values safely
+        min_prob_init = str(filters.get('min_prob', 0))
+        max_prob_init = str(filters.get('max_prob', 100))
+        if filters.get('probability_filter') == "Custom Range":
             col6a, col6b = st.columns(2)
             with col6a:
-                min_prob = st.text_input("Min %", value="0", key="team_view_prob_min_filter")
+                min_prob_input = st.text_input("Min %", value=min_prob_init, key="custom_min_prob_input")
+
             with col6b:
-                max_prob = st.text_input("Max %", value="100", key="team_view_prob_max_filter")
+                max_prob_input = st.text_input("Max %", value=max_prob_init, key="custom_max_prob_input")
+                    # Step 3: Validate and convert
             try:
-                min_prob = int(min_prob)
-                max_prob = int(max_prob)
-                filters['custom_prob_range'] = f"{min_prob}-{max_prob}%"
+                min_prob = int(min_prob_input)
             except ValueError:
-                st.warning("Please enter valid numbers for probability range")
-                filters['custom_prob_range'] = "0-100%"
+                min_prob = 0
+        
+            try:
+                max_prob = int(max_prob_input)
+            except ValueError:
+                max_prob = 100
+
+            filters['min_prob'] = min_prob
+            filters['max_prob'] = max_prob
+            filters['custom_prob_range'] = f"{min_prob}-{max_prob}%"
+
     with col7:
         status_options = ["All Status", "Committed for the Month", "Upsides for the Month"]
-        filters['status_filter'] = st.selectbox("🎯 Status", options=status_options, key="team_view_status_filter")
+        filters['status_filter'] = st.selectbox("🎯 Status", options=status_options)
+        if filters['status_filter'] == "Committed for the Month":
+            current_month = pd.Timestamp.now().strftime('%B')
+            mask = (df['Month'] == current_month) & (df['Probability_Num'] > 75)
+            filtered_df = df[mask]
+        elif filters['status_filter'] == "Upsides for the Month":
+            current_month = pd.Timestamp.now().strftime('%B')
+            mask = (df['Month'] == current_month) & (df['Probability_Num'].between(25, 75))
+            filtered_df = df[mask]
     with col8:
-        if 'KritiKal Focus Areas' in df.columns:
-            focus_areas = ["All Focus"] + sorted(df['KritiKal Focus Areas'].dropna().unique().tolist())
-            filters['focus_filter'] = st.selectbox("🎯 Focus", options=focus_areas, key="team_view_focus_filter")
+        filters['focus_filter'] = st.selectbox("🎯 Focus", options=["All Focus"] + sorted(df['KritiKal Focus Areas'].dropna().unique().tolist()))
 
     filtered_df = filter_dataframe(df, filters)
     
@@ -1396,160 +1384,40 @@ def show_detailed():
     
     st.dataframe(df, use_container_width=True)
 
-def show_navigation():
-    """Show navigation sidebar with user info and logout"""
+def show_sidebar():
+    """Show the sidebar with navigation and logout button"""
     with st.sidebar:
         st.title("Navigation")
-        
-        # Welcome message and user info
-        if st.session_state.authenticated:
-            st.markdown(f"""
-                <div style='padding: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; margin-bottom: 15px;'>
-                    <h3 style='color: white; margin: 0;'>Welcome, {st.session_state.username}</h3>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        # Navigation options
         selected = st.radio(
             "Select View",
             options=["Data Input", "Overview", "Sales Team", "Detailed Data"],
-            key="nav_view_selector"
+            key="navigation"
         )
         st.session_state.current_view = selected.lower().replace(" ", "_")
         
-        # Logout button
-        if st.button("Logout", key="nav_logout_button"):
+        # Add logout button
+        st.markdown("---")
+        if st.button("Logout", key="logout_button"):
             logout()
             st.rerun()
 
-def show_filters():
-    """Show global filters for the dashboard"""
-    st.markdown("""
-        <div style='padding: 15px; background: linear-gradient(to right, rgba(74, 144, 226, 0.1), rgba(108, 99, 255, 0.1));
-                    border-radius: 10px; margin-bottom: 20px;'>
-            <h3 style='color: white; margin: 0;'>Filters</h3>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(8)
-    
-    filters = {}
-    
-    with col1:
-        if 'Sales Owner' in st.session_state.df.columns:
-            team_members = ["All Team Members"] + sorted(st.session_state.df['Sales Owner'].dropna().unique().tolist())
-            filters['selected_member'] = st.selectbox(
-                "👤 Sales Owner",
-                options=team_members,
-                key="global_team_member_filter"
-            )
-    
-    with col2:
-        filters['search'] = st.text_input(
-            "🔍 Search",
-            placeholder="Search...",
-            key="global_search_filter"
-        )
-    
-    with col3:
-        if 'Month' in st.session_state.df.columns:
-            fiscal_order = ['April', 'May', 'June', 'July', 'August', 'September', 
-                          'October', 'November', 'December', 'January', 'February', 'March']
-            available_months = st.session_state.df['Month'].dropna().unique().tolist()
-            available_months.sort(key=lambda x: fiscal_order.index(x) if x in fiscal_order else len(fiscal_order))
-            filters['month_filter'] = st.selectbox(
-                "📅 Month",
-                options=["All Months"] + available_months,
-                key="global_month_filter"
-            )
-    
-    with col4:
-        filters['quarter_filter'] = st.selectbox(
-            "📊 Quarter",
-            options=["All Quarters", "Q1", "Q2", "Q3", "Q4"],
-            key="global_quarter_filter"
-        )
-    
-    with col5:
-        if 'Year' in st.session_state.df.columns:
-            years = ["All Years"] + sorted(st.session_state.df['Expected Close Date'].dt.year.unique().tolist())
-            filters['year_filter'] = st.selectbox(
-                "📅 Year",
-                options=years,
-                key="global_year_filter"
-            )
-    
-    with col6:
-        probability_options = ["All Probability", "0-25%", "26-50%", "51-75%", "76-100%", "Custom Range"]
-        filters['probability_filter'] = st.selectbox(
-            "📈 Probability",
-            options=probability_options,
-            key="global_probability_filter"
-        )
-        
-        if filters['probability_filter'] == "Custom Range":
-            col6a, col6b = st.columns(2)
-            with col6a:
-                min_prob = st.text_input(
-                    "Min %",
-                    value="0",
-                    key="global_prob_min_filter"
-                )
-            with col6b:
-                max_prob = st.text_input(
-                    "Max %",
-                    value="100",
-                    key="global_prob_max_filter"
-                )
-            
-            try:
-                min_prob = int(min_prob)
-                max_prob = int(max_prob)
-                filters['custom_prob_range'] = f"{min_prob}-{max_prob}%"
-            except ValueError:
-                st.warning("Please enter valid numbers for probability range")
-                filters['custom_prob_range'] = "0-100%"
-    
-    with col7:
-        status_options = ["All Status", "Committed for the Month", "Upsides for the Month"]
-        filters['status_filter'] = st.selectbox(
-            "🎯 Status",
-            options=status_options,
-            key="global_status_filter"
-        )
-    
-    with col8:
-        if 'KritiKal Focus Areas' in st.session_state.df.columns:
-            focus_areas = ["All Focus"] + sorted(st.session_state.df['KritiKal Focus Areas'].dropna().unique().tolist())
-            filters['focus_filter'] = st.selectbox(
-                "🎯 Focus",
-                options=focus_areas,
-                key="global_focus_filter"
-            )
-    
-    return filters
-
 def main():
-    """Main function to run the dashboard"""
     # Check authentication
     if not is_authenticated():
         show_login_page()
         return
-    
-    # Get current user
-    current_user = get_current_user()
-    if not current_user:
-        show_login_page()
-        return
-    
-    # Show navigation
-    show_navigation()
-    
-    # Show filters if data is loaded and not in overview or sales_team tab
-    if st.session_state.df is not None and st.session_state.current_view not in ["overview", "data_input", "sales_team"]:
-        show_filters()
-    
-    # Display current view
+
+    # Show sidebar with navigation and logout
+    show_sidebar()
+
+    # Show current user in the main area
+    st.markdown(f"""
+        <div style='text-align: right; margin-bottom: 20px;'>
+            <span style='color: #666;'>Logged in as: <strong>{get_current_user()}</strong></span>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Show the selected view
     if st.session_state.current_view == "data_input":
         show_data_input()
     elif st.session_state.current_view == "overview":
