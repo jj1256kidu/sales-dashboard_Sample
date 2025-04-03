@@ -472,7 +472,9 @@ def show_overview():
     st.markdown("### Enter Your Sales Target (Optional)")
     user_target = st.number_input(
         "Sales Target (in Lakhs)",
-         value=str(st.session_state.sales_target),  # existing value or 0
+         value=float(st.session_state.sales_target),  # existing value or 0
+         step=0.1,  # or 1.0 if you want full numbers
+         format="%.1f"
     )
     try:
         user_target = int(user_target_input)
