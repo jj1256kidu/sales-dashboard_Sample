@@ -6,8 +6,6 @@ from datetime import datetime
 import numpy as np
 import io
 from functools import lru_cache
-from auth import is_authenticated, get_current_user, show_login_page, logout
-import hashlib
 
 # Format helper functions
 def format_amount(x):
@@ -66,8 +64,10 @@ if 'reset_triggered' not in st.session_state:
     st.session_state.reset_triggered = False
 if 'selected_team_member' not in st.session_state:
     st.session_state.selected_team_member = None
+
+# Keep a single "sales_target" in session state
 if 'sales_target' not in st.session_state:
-    st.session_state.sales_target = 0.0
+    st.session_state.sales_target = 0.0  # Default target in Lakhs
 
 # Custom CSS for modern styling
 st.markdown("""
@@ -1384,8 +1384,7 @@ def show_detailed():
     
     st.dataframe(df, use_container_width=True)
 
-def show_sidebar():
-    """Show the sidebar with navigation and logout button"""
+def main():
     with st.sidebar:
         st.title("Navigation")
         selected = st.radio(
@@ -1394,30 +1393,7 @@ def show_sidebar():
             key="navigation"
         )
         st.session_state.current_view = selected.lower().replace(" ", "_")
-        
-        # Add logout button
-        st.markdown("---")
-        if st.button("Logout", key="logout_button"):
-            logout()
-            st.rerun()
-
-def main():
-    # Check authentication
-    if not is_authenticated():
-        show_login_page()
-        return
-
-    # Show sidebar with navigation and logout
-    show_sidebar()
-
-    # Show current user in the main area
-    st.markdown(f"""
-        <div style='text-align: right; margin-bottom: 20px;'>
-            <span style='color: #666;'>Logged in as: <strong>{get_current_user()}</strong></span>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # Show the selected view
+    
     if st.session_state.current_view == "data_input":
         show_data_input()
     elif st.session_state.current_view == "overview":
