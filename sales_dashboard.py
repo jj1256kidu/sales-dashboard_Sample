@@ -1468,10 +1468,10 @@ def login():
         password = st.text_input("Password", type="password", key="login_pass")
 
         if st.button("Sign In"):
-            if username == "admin" and password == "password123":
+            if username == "jobin" and password == "1kspl":
                 st.session_state.authenticated = True
                 st.success("Login successful!")
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Invalid credentials")
 
