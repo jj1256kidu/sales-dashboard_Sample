@@ -1463,7 +1463,8 @@ def login():
     with st.container():
         st.markdown('<div class="login-container"><div class="login-box">', unsafe_allow_html=True)
 
-        st.markdown("<h2>Welcome Back 👋</h2>", unsafe_allow_html=True)
+        #st.markdown("<h2>Welcome Back 👋</h2>", unsafe_allow_html=True)
+        st.markdown("<h2>Login to Sales Dashboard</h2>", unsafe_allow_html=True)
         username = st.text_input("Email Address", key="login_user")
         password = st.text_input("Password", type="password", key="login_pass")
 
