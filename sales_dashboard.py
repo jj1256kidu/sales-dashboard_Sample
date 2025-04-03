@@ -1137,7 +1137,7 @@ def show_sales_team():
                     "Min %",
                     min_value=0,
                     max_value=100,
-                    value=filters.get('min_prob', 0),
+                    value=min_prob_init,
                     step=1,
                     key="min_prob_input"
                 )
@@ -1147,7 +1147,7 @@ def show_sales_team():
                     "Max %",
                     min_value=0,
                     max_value=100,
-                    value=filters.get('max_prob', 100),
+                    value=max_prob_init,
                     step=1,
                     key="max_prob_input"
             )
