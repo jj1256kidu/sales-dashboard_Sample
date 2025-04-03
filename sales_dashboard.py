@@ -472,11 +472,12 @@ def show_overview():
     st.markdown("### Enter Your Sales Target (Optional)")
     user_target = st.number_input(
         "Sales Target (in Lakhs)",
-        min_value=0,
-        value=int(st.session_state.sales_target),  # existing value or 0
-        step=1,  # increments by 1
-        format="%d"  # show it as integer
+         value=str(st.session_state.sales_target),  # existing value or 0
     )
+    try:
+        user_target = int(user_target_input)
+    except ValueError:
+        user_target = 0 
     # Store as float if you like, or keep it integer
     st.session_state.sales_target = float(user_target)
 
