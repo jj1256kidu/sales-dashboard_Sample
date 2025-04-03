@@ -1451,3 +1451,5 @@ def main():
         show_sales_team()
     elif st.session_state.current_view == "detailed_data":
         show_detailed()
+if __name__ == "__main__":
+    main()
