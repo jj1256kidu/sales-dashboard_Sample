@@ -6,13 +6,7 @@ from datetime import datetime
 import numpy as np
 import io
 from functools import lru_cache
-# ✅ Must be the FIRST Streamlit command
-st.set_page_config(
-    page_title="Sales Dashboard",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+
 # Format helper functions
 def format_amount(x):
     try:
@@ -1389,139 +1383,8 @@ def show_detailed():
         df = df[mask.any(axis=1)]
     
     st.dataframe(df, use_container_width=True)
-def login():
-    #st.set_page_config(page_title="Login", layout="wide")
-    
-    st.markdown("""
-    <style>
-        body {
-            background-color: #0f1218;
-            font-family: 'Segoe UI', sans-serif;
-        }
-
-        .login-container {
-            display: flex;
-            height: 100vh;
-            width: 100vw;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
-
-        .login-left {
-            flex: 1;
-            background: #0f1218;
-            padding: 60px 80px;
-            color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .login-left h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }
-
-        .login-left p {
-            color: #9ca3af;
-            font-size: 1rem;
-            margin-bottom: 40px;
-        }
-
-        .stTextInput>div>input {
-            background-color: #1a1f2e;
-            border: 1px solid #3b4b61;
-            border-radius: 8px;
-            padding: 10px;
-            font-size: 14px;
-            color: #ffffff;
-        }
-
-        .stTextInput>div>input::placeholder {
-            color: #888;
-        }
-
-        .stButton>button {
-            background-color: #10b981;
-            color: white;
-            font-weight: 600;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: 0.3s ease;
-            width: 100%;
-        }
-
-        .stButton>button:hover {
-            background-color: #0ea96b;
-        }
-
-        .login-footer {
-            margin-top: 15px;
-            font-size: 13px;
-            color: #6b7280;
-        }
-
-        .login-footer a {
-            color: #10b981;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        .login-right {
-            flex: 1;
-            background: url('https://assets-global.website-files.com/63e4b4b8c40f871f49f8aa8d/63e4b4b8c40f875257f8aaeb_Hero_globe-p-1080.webp') no-repeat center center;
-            background-size: cover;
-            filter: brightness(1.2);
-        }
-
-        [data-testid="stSidebar"], #MainMenu, footer {
-            display: none;
-        }
-    </style>
-
-    <div class="login-container">
-        <div class="login-left">
-            <h1>Login</h1>
-            <p>Step into the world of performance insights</p>
-    """, unsafe_allow_html=True)
-
-    # Login fields (inside styled block)
-    email = st.text_input("Email", placeholder="mail@example.com")
-    password = st.text_input("Password", placeholder="Enter password", type="password")
-    
-    login_clicked = st.button("Login")
-
-    if login_clicked:
-        if email == "jobin" and password == "1kspl":
-            st.session_state.authenticated = True
-            st.success("Login successful!")
-            st.rerun()
-        else:
-            st.error("Invalid credentials")
-
-    st.markdown("""
-        <div class="login-footer">
-            Forgot password? <a href="#">Reset</a><br>
-            Not registered yet? <a href="#">Create an account</a>
-        </div>
-        </div>
-        <div class="login-right"></div>
-    </div>
-    """, unsafe_allow_html=True)
 
 def main():
-    # Initialize session state for login
-    if 'authenticated' not in st.session_state:
-        st.session_state.authenticated = False
-
-    if not st.session_state.authenticated:
-        login()
-        return
-
-    # Sidebar Navigation after successful login
     with st.sidebar:
         st.title("Navigation")
         selected = st.radio(
@@ -1530,8 +1393,7 @@ def main():
             key="navigation"
         )
         st.session_state.current_view = selected.lower().replace(" ", "_")
-
-    # Routing
+    
     if st.session_state.current_view == "data_input":
         show_data_input()
     elif st.session_state.current_view == "overview":
@@ -1540,5 +1402,6 @@ def main():
         show_sales_team()
     elif st.session_state.current_view == "detailed_data":
         show_detailed()
+
 if __name__ == "__main__":
     main()
