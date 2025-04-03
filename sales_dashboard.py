@@ -1131,10 +1131,30 @@ def show_sales_team():
         if filters['probability_filter'] == "Custom Range":
             col6a, col6b = st.columns(2)
             with col6a:
-                min_prob = st.number_input("Min %", min_value=0, max_value=100, value=0, step=1)
+                min_prob = st.number_input(
+                    "Min %",
+                    min_value=0,
+                    max_value=100,
+                    value=filters.get('min_prob', 0),
+                    step=1,
+                    key="min_prob_input"
+                )
+
             with col6b:
-                max_prob = st.number_input("Max %", min_value=0, max_value=100, value=100, step=1)
-            filters['custom_prob_range'] = f"{min_prob}-{max_prob}%"
+                max_prob = st.number_input(
+                    "Max %",
+                    min_value=0,
+                    max_value=100,
+                    value=filters.get('max_prob', 100),
+                    step=1,
+                    key="max_prob_input"
+            )
+
+        # Store values for later use
+        filters['min_prob'] = min_prob
+        filters['max_prob'] = max_prob
+        filters['custom_prob_range'] = f"{min_prob}-{max_prob}%"
+
     with col7:
         status_options = ["All Status", "Committed for the Month", "Upsides for the Month"]
         filters['status_filter'] = st.selectbox("🎯 Status", options=status_options)
