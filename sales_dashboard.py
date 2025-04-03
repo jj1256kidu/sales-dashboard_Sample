@@ -65,6 +65,13 @@ if 'reset_triggered' not in st.session_state:
 if 'selected_team_member' not in st.session_state:
     st.session_state.selected_team_member = None
 
+###############################################################################
+# -------------- NEW: Keep a single "sales_target" for the Overview -------------- #
+###############################################################################
+if 'sales_target' not in st.session_state:
+    # Default it to zero or any other preferred starting value
+    st.session_state.sales_target = 0.0
+
 # Custom CSS for modern styling
 st.markdown("""
 <style>
@@ -464,277 +471,316 @@ def show_overview():
         return
     
     st.title("Sales Performance Overview")
-    
     df = st.session_state.df.copy()
+
+    # ---- Add a user-input target (in Lakhs) for the entire overview ----
+    st.markdown("### Enter Your Sales Target (Optional)")
+    user_target = st.number_input(
+        "Sales Target (in Lakhs)",
+        min_value=0.0,
+        value=st.session_state.sales_target,  # Use what's in session or 0
+        step=100.0
+    )
+
+    # If changed, store it in session_state
+    if user_target != st.session_state.sales_target:
+        st.session_state.sales_target = user_target
+
+    # Calculate total "Closed Won"
     won_deals = df[df['Sales Stage'].str.contains('Won', case=False, na=False)]
-    won_amount = won_deals['Amount'].sum() / 100000
+    won_amount_lacs = won_deals['Amount'].sum() / 100000  # convert to Lakhs
 
-    if 'Sales Stage' in df.columns and 'Amount' in df.columns:
-        # Removed: Target vs Closed Won section
-
-        # II. Practice
-        st.markdown("""
-            <div style='background: linear-gradient(90deg, #4A90E2 0%, #357ABD 100%); padding: 15px; border-radius: 10px; margin-bottom: 30px;'>
-                <h3 style='color: white; margin: 0; text-align: center; font-size: 1.8em; font-weight: 600;'>Practice</h3>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        if 'Practice' in df.columns:
-            # Add practice filter
-            practices = ['All'] + sorted(df['Practice'].dropna().unique().tolist())
-            selected_practice = st.selectbox(
-                "Select Practice",
-                options=practices,
-                key="practice_filter"
-            )
-            
-            # Filter data based on selected practice
-            if selected_practice != 'All':
-                df = df[df['Practice'] == selected_practice]
-            
-            # Calculate practice metrics
-            practice_metrics = df.groupby('Practice').agg({
-                'Amount': lambda x: x[df['Sales Stage'].str.contains('Won', case=False, na=False)].sum() / 100000,
-                'Sales Stage': lambda x: x[df['Sales Stage'].str.contains('Won', case=False, na=False)].count()
-            }).reset_index()
-            
-            practice_metrics.columns = ['Practice', 'Closed Amount', 'Closed Deals']
-            
-            # Calculate total pipeline amount by practice (excluding closed won)
-            pipeline_df = df[~df['Sales Stage'].str.contains('Won', case=False, na=False)]
-            total_pipeline = pipeline_df.groupby('Practice')['Amount'].sum() / 100000
-            practice_metrics['Total Pipeline'] = practice_metrics['Practice'].map(total_pipeline)
-            
-            # Calculate total deals by practice (excluding closed won)
-            total_deals = pipeline_df.groupby('Practice').size()
-            practice_metrics['Pipeline Deals'] = practice_metrics['Practice'].map(total_deals)
-            
-            # Sort practice metrics by Total Pipeline in descending order
-            practice_metrics = practice_metrics.sort_values('Total Pipeline', ascending=False)
-            
-            # Create a comprehensive view
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                # Practice-wise Pipeline Amount
-                fig_pipeline = go.Figure()
-                
-                fig_pipeline.add_trace(go.Bar(
-                    x=practice_metrics['Practice'],
-                    y=practice_metrics['Total Pipeline'],
-                    name='Pipeline',
-                    text=practice_metrics['Total Pipeline'].apply(lambda x: f"₹{int(x)}L"),
-                    textposition='outside',
-                    textfont=dict(size=16, color='#4A90E2', family='Segoe UI', weight='bold'),
-                    marker_color='#4A90E2',
-                    marker_line=dict(color='#357ABD', width=2),
-                    opacity=0.9
-                ))
-                
-                fig_pipeline.add_trace(go.Bar(
-                    x=practice_metrics['Practice'],
-                    y=practice_metrics['Closed Amount'],
-                    name='Closed Won',
-                    text=practice_metrics['Closed Amount'].apply(lambda x: f"₹{int(x)}L"),
-                    textposition='outside',
-                    textfont=dict(size=16, color='#2ecc71', family='Segoe UI', weight='bold'),
-                    marker_color='#2ecc71',
-                    marker_line=dict(color='#27ae60', width=2),
-                    opacity=0.9
-                ))
-                
-                fig_pipeline.update_layout(
-                    title=dict(
-                        text="Practice-wise Pipeline vs Closed Won",
-                        font=dict(size=22, family='Segoe UI', color='#2c3e50', weight='bold'),
-                        x=0.5,
-                        y=0.95,
-                        xanchor='center',
-                        yanchor='top'
-                    ),
-                    height=500,
-                    barmode='group',
-                    bargap=0.15,
-                    bargroupgap=0.1,
-                    xaxis_title=dict(
-                        text="Practice",
-                        font=dict(size=16, family='Segoe UI', color='#2c3e50', weight='bold'),
-                        standoff=15
-                    ),
-                    yaxis_title=dict(
-                        text="Amount (Lakhs)",
-                        font=dict(size=16, family='Segoe UI', color='#2c3e50', weight='bold'),
-                        standoff=15
-                    ),
-                    showlegend=True,
-                    legend=dict(
-                        font=dict(size=14, family='Segoe UI', color='#2c3e50'),
-                        yanchor="top",
-                        y=0.99,
-                        xanchor="right",
-                        x=0.99,
-                        bgcolor='rgba(255, 255, 255, 0.8)',
-                        bordercolor='rgba(0, 0, 0, 0.2)',
-                        borderwidth=1
-                    ),
-                    font=dict(size=14, family='Segoe UI'),
-                    xaxis=dict(
-                        tickfont=dict(size=12, family='Segoe UI', color='#2c3e50'),
-                        gridcolor='rgba(0, 0, 0, 0.1)'
-                    ),
-                    yaxis=dict(
-                        tickfont=dict(size=12, family='Segoe UI', color='#2c3e50'),
-                        gridcolor='rgba(0, 0, 0, 0.1)'
-                    ),
-                    plot_bgcolor='white',
-                    paper_bgcolor='white',
-                    margin=dict(t=80, b=40, l=40, r=40)
-                )
-                
-                st.plotly_chart(fig_pipeline, use_container_width=True)
-            
-            with col2:
-                # Practice-wise Deal Count
-                fig_deals = go.Figure()
-                
-                fig_deals.add_trace(go.Bar(
-                    x=practice_metrics['Practice'],
-                    y=practice_metrics['Pipeline Deals'],
-                    name='Pipeline Deals',
-                    text=practice_metrics['Pipeline Deals'],
-                    textposition='outside',
-                    textfont=dict(size=16, color='#4A90E2', family='Segoe UI', weight='bold'),
-                    marker_color='#4A90E2',
-                    marker_line=dict(color='#357ABD', width=2),
-                    opacity=0.9
-                ))
-                
-                fig_deals.add_trace(go.Bar(
-                    x=practice_metrics['Practice'],
-                    y=practice_metrics['Closed Deals'],
-                    name='Closed Deals',
-                    text=practice_metrics['Closed Deals'],
-                    textposition='outside',
-                    textfont=dict(size=16, color='#2ecc71', family='Segoe UI', weight='bold'),
-                    marker_color='#2ecc71',
-                    marker_line=dict(color='#27ae60', width=2),
-                    opacity=0.9
-                ))
-                
-                fig_deals.update_layout(
-                    title=dict(
-                        text="Practice-wise Pipeline vs Closed Deals",
-                        font=dict(size=22, family='Segoe UI', color='#2c3e50', weight='bold'),
-                        x=0.5,
-                        y=0.95,
-                        xanchor='center',
-                        yanchor='top'
-                    ),
-                    height=500,
-                    barmode='group',
-                    bargap=0.15,
-                    bargroupgap=0.1,
-                    xaxis_title=dict(
-                        text="Practice",
-                        font=dict(size=16, family='Segoe UI', color='#2c3e50', weight='bold'),
-                        standoff=15
-                    ),
-                    yaxis_title=dict(
-                        text="Number of Deals",
-                        font=dict(size=16, family='Segoe UI', color='#2c3e50', weight='bold'),
-                        standoff=15
-                    ),
-                    showlegend=True,
-                    legend=dict(
-                        font=dict(size=14, family='Segoe UI', color='#2c3e50'),
-                        yanchor="top",
-                        y=0.99,
-                        xanchor="right",
-                        x=0.99,
-                        bgcolor='rgba(255, 255, 255, 0.8)',
-                        bordercolor='rgba(0, 0, 0, 0.2)',
-                        borderwidth=1
-                    ),
-                    font=dict(size=14, family='Segoe UI'),
-                    xaxis=dict(
-                        tickfont=dict(size=12, family='Segoe UI', color='#2c3e50'),
-                        gridcolor='rgba(0, 0, 0, 0.1)'
-                    ),
-                    yaxis=dict(
-                        tickfont=dict(size=12, family='Segoe UI', color='#2c3e50'),
-                        gridcolor='rgba(0, 0, 0, 0.1)'
-                    ),
-                    plot_bgcolor='white',
-                    paper_bgcolor='white',
-                    margin=dict(t=80, b=40, l=40, r=40)
-                )
-                
-                st.plotly_chart(fig_deals, use_container_width=True)
-            
-            # Add practice summary metrics
-            st.markdown("### Practice Summary")
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                total_pipeline = practice_metrics['Total Pipeline'].sum()
-                st.markdown(f"""
-                    <div style='text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px;'>
-                        <div class='metric-label'>Total Pipeline</div>
-                        <div class='metric-value'>₹{int(total_pipeline)}L</div>
-                        <div style='color: #666; font-size: 0.9em;'>Active pipeline value</div>
-                    </div>
-                """, unsafe_allow_html=True)
-            
-            with col2:
-                total_deals = practice_metrics['Pipeline Deals'].sum()
-                st.markdown(f"""
-                    <div style='text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px;'>
-                        <div class='metric-label'>Pipeline Deals</div>
-                        <div class='metric-value'>{int(total_deals)}</div>
-                        <div style='color: #666; font-size: 0.9em;'>Active opportunities</div>
-                    </div>
-                """, unsafe_allow_html=True)
-            
-            with col3:
-                total_won = practice_metrics['Closed Deals'].sum()
-                win_rate = (total_won / (total_won + total_deals) * 100) if (total_won + total_deals) > 0 else 0
-                st.markdown(f"""
-                    <div style='text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px;'>
-                        <div class='metric-label'>Win Rate</div>
-                        <div class='metric-value'>{int(win_rate)}%</div>
-                        <div style='color: #666; font-size: 0.9em;'>{int(total_won)} won</div>
-                    </div>
-                """, unsafe_allow_html=True)
-            
-            with col4:
-                avg_deal_size = practice_metrics['Closed Amount'].sum() / total_won if total_won > 0 else 0
-                st.markdown(f"""
-                    <div style='text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px;'>
-                        <div class='metric-label'>Avg Deal Size</div>
-                        <div class='metric-value'>₹{int(avg_deal_size)}L</div>
-                        <div style='color: #666; font-size: 0.9em;'>Per won deal</div>
-                    </div>
-                """, unsafe_allow_html=True)
-            
-            # Add practice-wise summary table
-            st.markdown("### Practice-wise Details")
-            summary_data = practice_metrics.copy()
-            summary_data['Win Rate'] = (summary_data['Closed Deals'] / (summary_data['Closed Deals'] + summary_data['Pipeline Deals']) * 100).round(1)
-            
-            # Format the summary table
-            summary_data['Closed Amount'] = summary_data['Closed Amount'].apply(lambda x: f"₹{int(x)}L")
-            summary_data['Total Pipeline'] = summary_data['Total Pipeline'].apply(lambda x: f"₹{int(x)}L")
-            summary_data['Win Rate'] = summary_data['Win Rate'].apply(lambda x: f"{int(x)}%")
-            
-            st.dataframe(
-                summary_data[['Practice', 'Closed Amount', 'Total Pipeline', 'Closed Deals', 'Pipeline Deals', 'Win Rate']],
-                use_container_width=True
-            )
-        else:
-            st.error("Practice column not found in the dataset")
-    
+    # Show a basic "Target vs Closed Won" progress
+    if st.session_state.sales_target > 0:
+        achievement_pct = (won_amount_lacs / st.session_state.sales_target) * 100
     else:
-        st.error("Required data fields (Sales Stage, Amount) not found in the dataset")
+        achievement_pct = 0
+
+    st.markdown(
+        f"""
+        <div style='margin-top: 30px; padding: 20px; background: #f0f2f6; border-radius: 12px;'>
+            <h3 style='margin: 0; color: #2ecc71; font-size: 1.2em; font-weight: 500;'>Closed Won</h3>
+            <h2 style='margin: 5px 0; color: #2ecc71; font-size: 2.8em; font-weight: 700; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);'>
+                ₹{won_amount_lacs:,.2f}L
+            </h2>
+            <div style='text-align: right; margin-bottom: 10px;'>
+                <span style='color: #e74c3c; font-size: 1em; font-weight: 500;'>Target: ₹{st.session_state.sales_target:,.2f}L</span>
+            </div>
+            <div style='background: #e74c3c; height: 40px; border-radius: 20px; overflow: hidden; position: relative; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);'>
+                <div style='background: #2ecc71; height: 100%; width: {min(achievement_pct, 100)}%; transition: width 0.5s ease-in-out;'></div>
+                <div style='position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: 600; font-size: 1.2em; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);'>
+                    {int(achievement_pct)}% Complete
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # ---- The rest of your existing Overview code remains below ----
+    #  (Practice analysis, KritiKal Focus Areas, Monthly Pipeline, etc.)
+
+    # II. Practice
+    st.markdown("""
+        <div style='background: linear-gradient(90deg, #4A90E2 0%, #357ABD 100%); padding: 15px; border-radius: 10px; margin-bottom: 30px;'>
+            <h3 style='color: white; margin: 0; text-align: center; font-size: 1.8em; font-weight: 600;'>Practice</h3>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    if 'Practice' in df.columns:
+        # Add practice filter
+        practices = ['All'] + sorted(df['Practice'].dropna().unique().tolist())
+        selected_practice = st.selectbox(
+            "Select Practice",
+            options=practices,
+            key="practice_filter"
+        )
+        
+        # Filter data based on selected practice
+        df_practice = df.copy()
+        if selected_practice != 'All':
+            df_practice = df_practice[df_practice['Practice'] == selected_practice]
+        
+        # Calculate practice metrics
+        practice_metrics = df_practice.groupby('Practice').agg({
+            'Amount': lambda x: x[df_practice['Sales Stage'].str.contains('Won', case=False, na=False)].sum() / 100000,
+            'Sales Stage': lambda x: x[df_practice['Sales Stage'].str.contains('Won', case=False, na=False)].count()
+        }).reset_index()
+        
+        practice_metrics.columns = ['Practice', 'Closed Amount', 'Closed Deals']
+        
+        # Calculate total pipeline amount by practice (excluding closed won)
+        pipeline_df = df_practice[~df_practice['Sales Stage'].str.contains('Won', case=False, na=False)]
+        total_pipeline = pipeline_df.groupby('Practice')['Amount'].sum() / 100000
+        practice_metrics['Total Pipeline'] = practice_metrics['Practice'].map(total_pipeline)
+        
+        # Calculate total deals by practice (excluding closed won)
+        total_deals = pipeline_df.groupby('Practice').size()
+        practice_metrics['Pipeline Deals'] = practice_metrics['Practice'].map(total_deals)
+        
+        # Sort practice metrics by Total Pipeline in descending order
+        practice_metrics = practice_metrics.sort_values('Total Pipeline', ascending=False)
+        
+        # Create a comprehensive view
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Practice-wise Pipeline Amount
+            fig_pipeline = go.Figure()
+            
+            fig_pipeline.add_trace(go.Bar(
+                x=practice_metrics['Practice'],
+                y=practice_metrics['Total Pipeline'],
+                name='Pipeline',
+                text=practice_metrics['Total Pipeline'].apply(lambda x: f"₹{int(x)}L"),
+                textposition='outside',
+                textfont=dict(size=16, color='#4A90E2', family='Segoe UI', weight='bold'),
+                marker_color='#4A90E2',
+                marker_line=dict(color='#357ABD', width=2),
+                opacity=0.9
+            ))
+            
+            fig_pipeline.add_trace(go.Bar(
+                x=practice_metrics['Practice'],
+                y=practice_metrics['Closed Amount'],
+                name='Closed Won',
+                text=practice_metrics['Closed Amount'].apply(lambda x: f"₹{int(x)}L"),
+                textposition='outside',
+                textfont=dict(size=16, color='#2ecc71', family='Segoe UI', weight='bold'),
+                marker_color='#2ecc71',
+                marker_line=dict(color='#27ae60', width=2),
+                opacity=0.9
+            ))
+            
+            fig_pipeline.update_layout(
+                title=dict(
+                    text="Practice-wise Pipeline vs Closed Won",
+                    font=dict(size=22, family='Segoe UI', color='#2c3e50', weight='bold'),
+                    x=0.5,
+                    y=0.95,
+                    xanchor='center',
+                    yanchor='top'
+                ),
+                height=500,
+                barmode='group',
+                bargap=0.15,
+                bargroupgap=0.1,
+                xaxis_title=dict(
+                    text="Practice",
+                    font=dict(size=16, family='Segoe UI', color='#2c3e50', weight='bold'),
+                    standoff=15
+                ),
+                yaxis_title=dict(
+                    text="Amount (Lakhs)",
+                    font=dict(size=16, family='Segoe UI', color='#2c3e50', weight='bold'),
+                    standoff=15
+                ),
+                showlegend=True,
+                legend=dict(
+                    font=dict(size=14, family='Segoe UI', color='#2c3e50'),
+                    yanchor="top",
+                    y=0.99,
+                    xanchor="right",
+                    x=0.99,
+                    bgcolor='rgba(255, 255, 255, 0.8)',
+                    bordercolor='rgba(0, 0, 0, 0.2)',
+                    borderwidth=1
+                ),
+                font=dict(size=14, family='Segoe UI'),
+                xaxis=dict(
+                    tickfont=dict(size=12, family='Segoe UI', color='#2c3e50'),
+                    gridcolor='rgba(0, 0, 0, 0.1)'
+                ),
+                yaxis=dict(
+                    tickfont=dict(size=12, family='Segoe UI', color='#2c3e50'),
+                    gridcolor='rgba(0, 0, 0, 0.1)'
+                ),
+                plot_bgcolor='white',
+                paper_bgcolor='white',
+                margin=dict(t=80, b=40, l=40, r=40)
+            )
+            
+            st.plotly_chart(fig_pipeline, use_container_width=True)
+        
+        with col2:
+            # Practice-wise Deal Count
+            fig_deals = go.Figure()
+            
+            fig_deals.add_trace(go.Bar(
+                x=practice_metrics['Practice'],
+                y=practice_metrics['Pipeline Deals'],
+                name='Pipeline Deals',
+                text=practice_metrics['Pipeline Deals'],
+                textposition='outside',
+                textfont=dict(size=16, color='#4A90E2', family='Segoe UI', weight='bold'),
+                marker_color='#4A90E2',
+                marker_line=dict(color='#357ABD', width=2),
+                opacity=0.9
+            ))
+            
+            fig_deals.add_trace(go.Bar(
+                x=practice_metrics['Practice'],
+                y=practice_metrics['Closed Deals'],
+                name='Closed Deals',
+                text=practice_metrics['Closed Deals'],
+                textposition='outside',
+                textfont=dict(size=16, color='#2ecc71', family='Segoe UI', weight='bold'),
+                marker_color='#2ecc71',
+                marker_line=dict(color='#27ae60', width=2),
+                opacity=0.9
+            ))
+            
+            fig_deals.update_layout(
+                title=dict(
+                    text="Practice-wise Pipeline vs Closed Deals",
+                    font=dict(size=22, family='Segoe UI', color='#2c3e50', weight='bold'),
+                    x=0.5,
+                    y=0.95,
+                    xanchor='center',
+                    yanchor='top'
+                ),
+                height=500,
+                barmode='group',
+                bargap=0.15,
+                bargroupgap=0.1,
+                xaxis_title=dict(
+                    text="Practice",
+                    font=dict(size=16, family='Segoe UI', color='#2c3e50', weight='bold'),
+                    standoff=15
+                ),
+                yaxis_title=dict(
+                    text="Number of Deals",
+                    font=dict(size=16, family='Segoe UI', color='#2c3e50', weight='bold'),
+                    standoff=15
+                ),
+                showlegend=True,
+                legend=dict(
+                    font=dict(size=14, family='Segoe UI', color='#2c3e50'),
+                    yanchor="top",
+                    y=0.99,
+                    xanchor="right",
+                    x=0.99,
+                    bgcolor='rgba(255, 255, 255, 0.8)',
+                    bordercolor='rgba(0, 0, 0, 0.2)',
+                    borderwidth=1
+                ),
+                font=dict(size=14, family='Segoe UI'),
+                xaxis=dict(
+                    tickfont=dict(size=12, family='Segoe UI', color='#2c3e50'),
+                    gridcolor='rgba(0, 0, 0, 0.1)'
+                ),
+                yaxis=dict(
+                    tickfont=dict(size=12, family='Segoe UI', color='#2c3e50'),
+                    gridcolor='rgba(0, 0, 0, 0.1)'
+                ),
+                plot_bgcolor='white',
+                paper_bgcolor='white',
+                margin=dict(t=80, b=40, l=40, r=40)
+            )
+            
+            st.plotly_chart(fig_deals, use_container_width=True)
+        
+        # Add practice summary metrics
+        st.markdown("### Practice Summary")
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            total_pipeline = practice_metrics['Total Pipeline'].sum()
+            st.markdown(f"""
+                <div style='text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px;'>
+                    <div class='metric-label'>Total Pipeline</div>
+                    <div class='metric-value'>₹{int(total_pipeline)}L</div>
+                    <div style='color: #666; font-size: 0.9em;'>Active pipeline value</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            total_deals_count = practice_metrics['Pipeline Deals'].sum()
+            st.markdown(f"""
+                <div style='text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px;'>
+                    <div class='metric-label'>Pipeline Deals</div>
+                    <div class='metric-value'>{int(total_deals_count)}</div>
+                    <div style='color: #666; font-size: 0.9em;'>Active opportunities</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        with col3:
+            total_won = practice_metrics['Closed Deals'].sum()
+            win_rate = (total_won / (total_won + total_deals_count) * 100) if (total_won + total_deals_count) > 0 else 0
+            st.markdown(f"""
+                <div style='text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px;'>
+                    <div class='metric-label'>Win Rate</div>
+                    <div class='metric-value'>{int(win_rate)}%</div>
+                    <div style='color: #666; font-size: 0.9em;'>{int(total_won)} won</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        with col4:
+            avg_deal_size = practice_metrics['Closed Amount'].sum() / total_won if total_won > 0 else 0
+            st.markdown(f"""
+                <div style='text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px;'>
+                    <div class='metric-label'>Avg Deal Size</div>
+                    <div class='metric-value'>₹{int(avg_deal_size)}L</div>
+                    <div style='color: #666; font-size: 0.9em;'>Per won deal</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        # Add practice-wise summary table
+        st.markdown("### Practice-wise Details")
+        summary_data = practice_metrics.copy()
+        summary_data['Win Rate'] = (summary_data['Closed Deals'] / (summary_data['Closed Deals'] + summary_data['Pipeline Deals']) * 100).round(1)
+        
+        # Format the summary table
+        summary_data['Closed Amount'] = summary_data['Closed Amount'].apply(lambda x: f"₹{int(x)}L")
+        summary_data['Total Pipeline'] = summary_data['Total Pipeline'].apply(lambda x: f"₹{int(x)}L")
+        summary_data['Win Rate'] = summary_data['Win Rate'].apply(lambda x: f"{int(x)}%")
+        
+        st.dataframe(
+            summary_data[['Practice', 'Closed Amount', 'Total Pipeline', 'Closed Deals', 'Pipeline Deals', 'Win Rate']],
+            use_container_width=True
+        )
+    else:
+        st.error("Practice column not found in the dataset")
 
     # V. KritiKal Focus Areas
     st.markdown("""
@@ -762,8 +808,8 @@ def show_overview():
         focus_metrics = focus_metrics.merge(total_deals, on='Focus Area', how='left')
         
         # Calculate percentage share
-        total_amount = focus_metrics['Total Amount'].sum()
-        focus_metrics['Share %'] = (focus_metrics['Total Amount'] / total_amount * 100).round(1)
+        total_amount_focus = focus_metrics['Total Amount'].sum()
+        focus_metrics['Share %'] = (focus_metrics['Total Amount'] / total_amount_focus * 100).round(1)
         
         # Sort by Total Amount in descending order
         focus_metrics = focus_metrics.sort_values('Total Amount', ascending=False)
@@ -816,7 +862,7 @@ def show_overview():
                 borderwidth=1
             ),
             annotations=[dict(
-                text=f"Total: ₹{int(total_amount)}L",
+                text=f"Total: ₹{int(total_amount_focus)}L",
                 font=dict(size=16, family='Segoe UI', weight='bold'),
                 showarrow=False,
                 x=0.5,
@@ -1252,7 +1298,7 @@ def show_sales_team():
         'Type': 'Hunting /farming'
     })
     
-    # Convert Amount to Lacs and create numeric column for sorting
+    # Convert Amount to Lacs
     display_df['Amount (In Lacs)'] = display_df['Amount (In Lacs)'].apply(lambda x: int(x/100000) if pd.notnull(x) else 0)
     display_df['Probability'] = display_df['Probability'].apply(format_percentage)
     display_df['Weighted Revenue (In Lacs)'] = display_df.apply(
