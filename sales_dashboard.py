@@ -477,7 +477,7 @@ def show_overview():
          format="%.1f"
     )
     try:
-        user_target = int(user_target_input)
+        user_target = float(user_target_input)
     except ValueError:
         user_target = 0 
     # Store as float if you like, or keep it integer
