@@ -1412,22 +1412,20 @@ def login():
                 font-weight: 600;
             }
 
-            .login-box input {
-                width: 100%;
-                padding: 14px;
-                margin: 12px 0;
-                border-radius: 12px;
-                border: none;
+            .stTextInput>div>input {
                 background-color: #2a2e42;
-                color: #ffffff;
+                border: none;
+                border-radius: 12px;
+                padding: 14px;
+                color: white;
                 font-size: 16px;
             }
 
-            .login-box input:focus {
+            .stTextInput>div>input:focus {
                 outline: 2px solid #A66EFF;
             }
 
-            .login-box button {
+            .stButton>button {
                 width: 100%;
                 background: linear-gradient(90deg, #A66EFF 0%, #6E75FF 100%);
                 color: white;
@@ -1441,7 +1439,7 @@ def login():
                 transition: all 0.3s ease;
             }
 
-            .login-box button:hover {
+            .stButton>button:hover {
                 background: linear-gradient(90deg, #6E75FF 0%, #A66EFF 100%);
             }
 
@@ -1457,34 +1455,33 @@ def login():
                 font-weight: 600;
             }
 
-            /* Hide the native Streamlit elements */
             [data-testid="stSidebar"], #MainMenu, footer { display: none; }
         </style>
-
-        <div class="login-container">
-            <div class="login-box">
-                <h2>Welcome Back 👋</h2>
-                <input type="text" id="username" placeholder="Email Address" />
-                <input type="password" id="password" placeholder="Password" />
-                <button onclick="document.querySelector('button').click()">Sign In</button>
-                <div class="footer">
-                    Forgot your password? <a href="#">Reset</a>
-                </div>
-            </div>
-        </div>
     """, unsafe_allow_html=True)
 
-    # Hidden functional inputs (for Streamlit backend handling)
-    username = st.text_input("Username", label_visibility="collapsed", key="username_input")
-    password = st.text_input("Password", label_visibility="collapsed", type="password", key="password_input")
+    # Login UI inside container
+    with st.container():
+        st.markdown('<div class="login-container"><div class="login-box">', unsafe_allow_html=True)
 
-    if st.button("🔐 Authenticate"):
-        if username == "admin" and password == "password123":
-            st.session_state.authenticated = True
-            st.success("Login successful!")
-            st.rerun()
-        else:
-            st.error("Invalid credentials")
+        st.markdown("<h2>Welcome Back 👋</h2>", unsafe_allow_html=True)
+        username = st.text_input("Email Address", key="login_user")
+        password = st.text_input("Password", type="password", key="login_pass")
+
+        if st.button("Sign In"):
+            if username == "admin" and password == "password123":
+                st.session_state.authenticated = True
+                st.success("Login successful!")
+                st.experimental_rerun()
+            else:
+                st.error("Invalid credentials")
+
+        st.markdown("""
+            <div class="footer">
+                Forgot your password? <a href="#">Reset</a>
+            </div>
+        </div></div>
+        """, unsafe_allow_html=True)
+
 
 def main():
     # Initialize session state for login
