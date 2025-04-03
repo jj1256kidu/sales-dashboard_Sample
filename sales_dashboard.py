@@ -479,7 +479,7 @@ def show_overview():
         "Sales Target (in Lakhs)",
         min_value=0.0,
         value=st.session_state.sales_target,  # Use what's in session or 0
-        step=100.0
+        step=1000.0
     )
 
     # If changed, store it in session_state
