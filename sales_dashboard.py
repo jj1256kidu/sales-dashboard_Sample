@@ -1384,92 +1384,107 @@ def show_detailed():
     
     st.dataframe(df, use_container_width=True)
 def login():
-    # Custom login UI inspired by your image
     st.markdown("""
         <style>
-        .login-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 90vh;
-            background-color: #f5f7fa;
-        }
-        .login-box {
-            background: white;
-            border-radius: 12px;
-            padding: 40px;
-            width: 400px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        .login-box h2 {
-            text-align: center;
-            margin-bottom: 30px;
-            color: #1E1E1E;
-        }
-        .social-buttons {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-        .social-buttons button {
-            width: 48%;
-            background-color: #f1f1f1 !important;
-            color: #333 !important;
-            border-radius: 8px !important;
-        }
-        .email-input input, .password-input input {
-            border-radius: 8px !important;
-            padding: 10px;
-        }
-        .login-box small {
-            display: block;
-            text-align: right;
-            margin-top: 10px;
-            color: #357ABD;
-            cursor: pointer;
-        }
-        .submit-btn button {
-            width: 100%;
-            background-color: #4A90E2 !important;
-            color: white !important;
-            border-radius: 8px !important;
-            padding: 10px;
-        }
-        .bottom-text {
-            text-align: center;
-            margin-top: 15px;
-            font-size: 0.9em;
-            color: #555;
-        }
+            .login-container {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                background: linear-gradient(145deg, #0f0f14, #1a1d29);
+                font-family: 'Segoe UI', sans-serif;
+            }
+
+            .login-box {
+                background: #1e1e2f;
+                padding: 40px 35px;
+                border-radius: 20px;
+                width: 380px;
+                box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+                color: white;
+                text-align: center;
+            }
+
+            .login-box h2 {
+                margin-bottom: 20px;
+                font-size: 28px;
+                color: #ffffff;
+                font-weight: 600;
+            }
+
+            .login-box input {
+                width: 100%;
+                padding: 14px;
+                margin: 12px 0;
+                border-radius: 12px;
+                border: none;
+                background-color: #2a2e42;
+                color: #ffffff;
+                font-size: 16px;
+            }
+
+            .login-box input:focus {
+                outline: 2px solid #A66EFF;
+            }
+
+            .login-box button {
+                width: 100%;
+                background: linear-gradient(90deg, #A66EFF 0%, #6E75FF 100%);
+                color: white;
+                border: none;
+                padding: 14px;
+                font-size: 16px;
+                font-weight: 600;
+                border-radius: 12px;
+                margin-top: 20px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+
+            .login-box button:hover {
+                background: linear-gradient(90deg, #6E75FF 0%, #A66EFF 100%);
+            }
+
+            .login-box .footer {
+                margin-top: 20px;
+                font-size: 14px;
+                color: #aaa;
+            }
+
+            .login-box .footer a {
+                color: #A66EFF;
+                text-decoration: none;
+                font-weight: 600;
+            }
+
+            /* Hide the native Streamlit elements */
+            [data-testid="stSidebar"], #MainMenu, footer { display: none; }
         </style>
+
+        <div class="login-container">
+            <div class="login-box">
+                <h2>Welcome Back 👋</h2>
+                <input type="text" id="username" placeholder="Email Address" />
+                <input type="password" id="password" placeholder="Password" />
+                <button onclick="document.querySelector('button').click()">Sign In</button>
+                <div class="footer">
+                    Forgot your password? <a href="#">Reset</a>
+                </div>
+            </div>
+        </div>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="login-container"><div class="login-box">', unsafe_allow_html=True)
-    st.markdown('<h2>Log in to your Account</h2>', unsafe_allow_html=True)
+    # Hidden functional inputs (for Streamlit backend handling)
+    username = st.text_input("Username", label_visibility="collapsed", key="username_input")
+    password = st.text_input("Password", label_visibility="collapsed", type="password", key="password_input")
 
-    # Social login buttons
-    col1, col2 = st.columns(2)
-    with col1:
-        st.button("Google")
-    with col2:
-        st.button("Facebook")
-
-    st.markdown("<hr style='margin: 20px 0;'>", unsafe_allow_html=True)
-
-    email = st.text_input("Email", key="email")
-    password = st.text_input("Password", type="password", key="password")
-
-    st.markdown('<small>Forgot Password?</small>', unsafe_allow_html=True)
-
-    if st.button("Log in"):
-        if email == "admin@example.com" and password == "password123":
-            st.success("Login successful!")
+    if st.button("🔐 Authenticate"):
+        if username == "admin" and password == "password123":
             st.session_state.authenticated = True
+            st.success("Login successful!")
+            st.rerun()
         else:
-            st.error("Invalid email or password")
-
-    st.markdown('<div class="bottom-text">Don’t have an account? <b style="color:#4A90E2">Create an account</b></div>', unsafe_allow_html=True)
-    st.markdown('</div></div>', unsafe_allow_html=True)
+            st.error("Invalid credentials")
 
 def main():
     # Initialize session state for login
