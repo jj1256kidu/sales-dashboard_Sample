@@ -1390,7 +1390,7 @@ def show_detailed():
     
     st.dataframe(df, use_container_width=True)
 def login():
-    st.set_page_config(page_title="Login", layout="wide")
+    #st.set_page_config(page_title="Login", layout="wide")
     
     st.markdown("""
     <style>
