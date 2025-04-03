@@ -1,46 +1,3 @@
-# --------------------------
-# User Authentication Setup
-# --------------------------
-import streamlit as st
-
-USER_CREDENTIALS = {
-    "admin": "admin123",
-    "sales": "sales2024"
-}
-
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "username" not in st.session_state:
-    st.session_state.username = ""
-
-def show_login():
-    st.set_page_config(page_title="Login - Sales Dashboard", page_icon="🔒")
-    st.markdown("""
-        <div style="text-align:center; margin-top: 80px;">
-            <h1 style="color:#4A90E2;">🔐 Sales Dashboard Login</h1>
-            <p style="font-size:1.1em;">Please enter your credentials to continue</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    with st.form("login_form", clear_on_submit=False):
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        submit_btn = st.form_submit_button("Login")
-
-        if submit_btn:
-            if username in USER_CREDENTIALS and USER_CREDENTIALS[username] == password:
-                st.success("Login successful!")
-                st.session_state.logged_in = True
-                st.session_state.username = username
-                st.rerun()
-            else:
-                st.error("Invalid username or password. Please try again.")
-
-def logout():
-    st.session_state.logged_in = False
-    st.session_state.username = ""
-    st.rerun()
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -1426,23 +1383,40 @@ def show_detailed():
         df = df[mask.any(axis=1)]
     
     st.dataframe(df, use_container_width=True)
+def login():
+    st.title("🔐 Login to Access Dashboard")
+
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    if st.button("Login"):
+        if username == "admin" and password == "password123":
+            st.session_state.authenticated = True
+            st.success("Login successful!")
+            st.experimental_rerun()
+        else:
+            st.error("Invalid username or password")
 
 def main():
-    if not st.session_state.get("logged_in", False):
-        show_login()
+    # Initialize session state for login
+    if 'authenticated' not in st.session_state:
+        st.session_state.authenticated = False
+
+    if not st.session_state.authenticated:
+        login()
         return
 
+    # Sidebar Navigation after successful login
     with st.sidebar:
-        st.title(f"Welcome, {st.session_state.username.capitalize()}")
+        st.title("Navigation")
         selected = st.radio(
             "Select View",
             options=["Data Input", "Overview", "Sales Team", "Detailed Data"],
             key="navigation"
         )
-        if st.button("🚪 Logout"):
-            logout()
         st.session_state.current_view = selected.lower().replace(" ", "_")
 
+    # Routing
     if st.session_state.current_view == "data_input":
         show_data_input()
     elif st.session_state.current_view == "overview":
