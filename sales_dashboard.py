@@ -1386,103 +1386,108 @@ def show_detailed():
 def login():
     st.markdown("""
         <style>
-            .login-container {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                height: 100vh;
-                background: linear-gradient(145deg, #0f0f14, #1a1d29);
+            body {
+                background-color: #0f111a;
                 font-family: 'Segoe UI', sans-serif;
             }
 
-            .login-box {
-                background: #1e1e2f;
-                padding: 40px 35px;
-                border-radius: 20px;
+            .login-bg {
+                background: linear-gradient(135deg, rgba(15,17,26,0.9), rgba(26,28,39,0.9));
+                height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding-top: 10vh;
+            }
+
+            .glass-card {
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 16px;
+                padding: 40px;
                 width: 380px;
-                box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
                 color: white;
                 text-align: center;
             }
 
-            .login-box h2 {
-                margin-bottom: 20px;
+            .glass-card h2 {
                 font-size: 28px;
-                color: #ffffff;
                 font-weight: 600;
+                margin-bottom: 20px;
+                color: #ffffff;
             }
 
             .stTextInput>div>input {
-                background-color: #2a2e42;
+                background: rgba(255, 255, 255, 0.1);
                 border: none;
-                border-radius: 12px;
+                border-radius: 8px;
                 padding: 14px;
                 color: white;
-                font-size: 16px;
+                font-size: 15px;
             }
 
-            .stTextInput>div>input:focus {
-                outline: 2px solid #A66EFF;
+            .stTextInput>div>input::placeholder {
+                color: #bbb;
             }
 
             .stButton>button {
                 width: 100%;
-                background: linear-gradient(90deg, #A66EFF 0%, #6E75FF 100%);
+                background: linear-gradient(90deg, #6E75FF 0%, #A66EFF 100%);
                 color: white;
                 border: none;
                 padding: 14px;
                 font-size: 16px;
                 font-weight: 600;
-                border-radius: 12px;
+                border-radius: 10px;
                 margin-top: 20px;
                 cursor: pointer;
                 transition: all 0.3s ease;
             }
 
             .stButton>button:hover {
-                background: linear-gradient(90deg, #6E75FF 0%, #A66EFF 100%);
+                background: linear-gradient(90deg, #A66EFF 0%, #6E75FF 100%);
+                transform: translateY(-2px);
             }
 
-            .login-box .footer {
+            .footer {
                 margin-top: 20px;
-                font-size: 14px;
+                font-size: 13px;
                 color: #aaa;
             }
 
-            .login-box .footer a {
+            .footer a {
                 color: #A66EFF;
                 text-decoration: none;
-                font-weight: 600;
+                font-weight: 500;
             }
 
             [data-testid="stSidebar"], #MainMenu, footer { display: none; }
         </style>
     """, unsafe_allow_html=True)
 
-    # Login UI inside container
-    with st.container():
-        st.markdown('<div class="login-container"><div class="login-box">', unsafe_allow_html=True)
+    st.markdown('<div class="login-bg"><div class="glass-card">', unsafe_allow_html=True)
 
-        #st.markdown("<h2>Welcome Back 👋</h2>", unsafe_allow_html=True)
-        st.markdown("<h2>Login to Sales Dashboard</h2>", unsafe_allow_html=True)
-        username = st.text_input("Email Address", key="login_user")
-        password = st.text_input("Password", type="password", key="login_pass")
+    st.markdown("<h2>Sign in to Dashboard</h2>", unsafe_allow_html=True)
+    username = st.text_input("Email", placeholder="Enter your email", key="login_user")
+    password = st.text_input("Password", type="password", placeholder="Enter password", key="login_pass")
 
-        if st.button("Sign In"):
-            if username == "jobin" and password == "1kspl":
-                st.session_state.authenticated = True
-                st.success("Login successful!")
-                st.rerun()
-            else:
-                st.error("Invalid credentials")
+    if st.button("Sign In"):
+        if username == "jobin" and password == "1kspl":
+            st.session_state.authenticated = True
+            st.success("Login successful!")
+            st.rerun()
+        else:
+            st.error("Invalid credentials")
 
-        st.markdown("""
-            <div class="footer">
-                Forgot your password? <a href="#">Reset</a>
-            </div>
-        </div></div>
-        """, unsafe_allow_html=True)
-
+    st.markdown("""
+        <div class="footer">
+            Forgot your password? <a href="#">Reset</a>
+        </div>
+    </div></div>
+    """, unsafe_allow_html=True)
 
 def main():
     # Initialize session state for login
