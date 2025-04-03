@@ -65,12 +65,9 @@ if 'reset_triggered' not in st.session_state:
 if 'selected_team_member' not in st.session_state:
     st.session_state.selected_team_member = None
 
-###############################################################################
-# -------------- NEW: Keep a single "sales_target" for the Overview -------------- #
-###############################################################################
+# Keep a single "sales_target" in session state
 if 'sales_target' not in st.session_state:
-    # Default it to zero or any other preferred starting value
-    st.session_state.sales_target = 0.0
+    st.session_state.sales_target = 0.0  # Default target in Lakhs
 
 # Custom CSS for modern styling
 st.markdown("""
@@ -328,7 +325,6 @@ def process_data(df):
 @st.cache_data
 def calculate_team_metrics(df):
     """Calculate all team-related metrics at once"""
-    # Calculate base metrics with safe null handling
     team_metrics = df.groupby('Sales Owner').agg({
         'Amount': lambda x: int(x[df['Is_Won'] & x.notna()].sum() / 100000) if len(x[df['Is_Won'] & x.notna()]) > 0 else 0,
         'Is_Won': 'sum',
@@ -338,14 +334,13 @@ def calculate_team_metrics(df):
     
     team_metrics.columns = ['Sales Owner', 'Closed Won', 'Closed Deals', 'Current Pipeline', 'Weighted Projections']
     
-    # Fill NaN values with 0
     team_metrics = team_metrics.fillna(0)
     
-    # Calculate Pipeline Deals with safe null handling
+    # Calculate Pipeline Deals
     pipeline_deals = df[~df['Is_Won']].groupby('Sales Owner').size()
     team_metrics['Pipeline Deals'] = team_metrics['Sales Owner'].map(pipeline_deals).fillna(0).astype(int)
     
-    # Safe calculation of Win Rate to avoid division by zero
+    # Win Rate
     total_deals = team_metrics['Closed Deals'] + team_metrics['Pipeline Deals']
     team_metrics['Win Rate'] = np.where(
         total_deals > 0,
@@ -429,12 +424,10 @@ def show_data_input():
         if uploaded_file:
             try:
                 if uploaded_file.name.endswith('.xlsx'):
-                    # Handle Excel files
                     excel_file = pd.ExcelFile(uploaded_file)
                     sheet_name = st.selectbox("Select Worksheet", excel_file.sheet_names)
                     df = pd.read_excel(uploaded_file, sheet_name=sheet_name)
                 else:
-                    # Handle CSV files
                     df = pd.read_csv(uploaded_file)
                 
                 st.session_state.df = df
@@ -473,24 +466,25 @@ def show_overview():
     st.title("Sales Performance Overview")
     df = st.session_state.df.copy()
 
-    # ---- Add a user-input target (in Lakhs) for the entire overview ----
+    # --------------------------------------------------------
+    # (1) Let user edit the target as an integer
+    # --------------------------------------------------------
     st.markdown("### Enter Your Sales Target (Optional)")
     user_target = st.number_input(
         "Sales Target (in Lakhs)",
-        min_value=0.0,
-        value=st.session_state.sales_target,  # Use what's in session or 0
-        step=1000.0
+        min_value=0,
+        value=int(st.session_state.sales_target),  # existing value or 0
+        step=1,  # increments by 1
+        format="%d"  # show it as integer
     )
-
-    # If changed, store it in session_state
-    if user_target != st.session_state.sales_target:
-        st.session_state.sales_target = user_target
+    # Store as float if you like, or keep it integer
+    st.session_state.sales_target = float(user_target)
 
     # Calculate total "Closed Won"
     won_deals = df[df['Sales Stage'].str.contains('Won', case=False, na=False)]
     won_amount_lacs = won_deals['Amount'].sum() / 100000  # convert to Lakhs
 
-    # Show a basic "Target vs Closed Won" progress
+    # Show "Target vs Closed Won" progress
     if st.session_state.sales_target > 0:
         achievement_pct = (won_amount_lacs / st.session_state.sales_target) * 100
     else:
@@ -504,7 +498,7 @@ def show_overview():
                 ₹{won_amount_lacs:,.2f}L
             </h2>
             <div style='text-align: right; margin-bottom: 10px;'>
-                <span style='color: #e74c3c; font-size: 1em; font-weight: 500;'>Target: ₹{st.session_state.sales_target:,.2f}L</span>
+                <span style='color: #e74c3c; font-size: 1em; font-weight: 500;'>Target: ₹{st.session_state.sales_target:,.0f}L</span>
             </div>
             <div style='background: #e74c3c; height: 40px; border-radius: 20px; overflow: hidden; position: relative; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);'>
                 <div style='background: #2ecc71; height: 100%; width: {min(achievement_pct, 100)}%; transition: width 0.5s ease-in-out;'></div>
@@ -518,7 +512,6 @@ def show_overview():
     )
 
     # ---- The rest of your existing Overview code remains below ----
-    #  (Practice analysis, KritiKal Focus Areas, Monthly Pipeline, etc.)
 
     # II. Practice
     st.markdown("""
@@ -549,25 +542,23 @@ def show_overview():
         
         practice_metrics.columns = ['Practice', 'Closed Amount', 'Closed Deals']
         
-        # Calculate total pipeline amount by practice (excluding closed won)
+        # Pipeline by practice
         pipeline_df = df_practice[~df_practice['Sales Stage'].str.contains('Won', case=False, na=False)]
         total_pipeline = pipeline_df.groupby('Practice')['Amount'].sum() / 100000
         practice_metrics['Total Pipeline'] = practice_metrics['Practice'].map(total_pipeline)
         
-        # Calculate total deals by practice (excluding closed won)
+        # Pipeline deal counts
         total_deals = pipeline_df.groupby('Practice').size()
         practice_metrics['Pipeline Deals'] = practice_metrics['Practice'].map(total_deals)
         
-        # Sort practice metrics by Total Pipeline in descending order
+        # Sort by pipeline
         practice_metrics = practice_metrics.sort_values('Total Pipeline', ascending=False)
         
-        # Create a comprehensive view
+        # Charts
         col1, col2 = st.columns(2)
         
         with col1:
-            # Practice-wise Pipeline Amount
             fig_pipeline = go.Figure()
-            
             fig_pipeline.add_trace(go.Bar(
                 x=practice_metrics['Practice'],
                 y=practice_metrics['Total Pipeline'],
@@ -579,7 +570,6 @@ def show_overview():
                 marker_line=dict(color='#357ABD', width=2),
                 opacity=0.9
             ))
-            
             fig_pipeline.add_trace(go.Bar(
                 x=practice_metrics['Practice'],
                 y=practice_metrics['Closed Amount'],
@@ -591,7 +581,6 @@ def show_overview():
                 marker_line=dict(color='#27ae60', width=2),
                 opacity=0.9
             ))
-            
             fig_pipeline.update_layout(
                 title=dict(
                     text="Practice-wise Pipeline vs Closed Won",
@@ -639,13 +628,10 @@ def show_overview():
                 paper_bgcolor='white',
                 margin=dict(t=80, b=40, l=40, r=40)
             )
-            
             st.plotly_chart(fig_pipeline, use_container_width=True)
         
         with col2:
-            # Practice-wise Deal Count
             fig_deals = go.Figure()
-            
             fig_deals.add_trace(go.Bar(
                 x=practice_metrics['Practice'],
                 y=practice_metrics['Pipeline Deals'],
@@ -657,7 +643,6 @@ def show_overview():
                 marker_line=dict(color='#357ABD', width=2),
                 opacity=0.9
             ))
-            
             fig_deals.add_trace(go.Bar(
                 x=practice_metrics['Practice'],
                 y=practice_metrics['Closed Deals'],
@@ -669,7 +654,6 @@ def show_overview():
                 marker_line=dict(color='#27ae60', width=2),
                 opacity=0.9
             ))
-            
             fig_deals.update_layout(
                 title=dict(
                     text="Practice-wise Pipeline vs Closed Deals",
@@ -717,19 +701,18 @@ def show_overview():
                 paper_bgcolor='white',
                 margin=dict(t=80, b=40, l=40, r=40)
             )
-            
             st.plotly_chart(fig_deals, use_container_width=True)
         
-        # Add practice summary metrics
+        # Practice summary
         st.markdown("### Practice Summary")
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            total_pipeline = practice_metrics['Total Pipeline'].sum()
+            total_pipeline_val = practice_metrics['Total Pipeline'].sum()
             st.markdown(f"""
                 <div style='text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px;'>
                     <div class='metric-label'>Total Pipeline</div>
-                    <div class='metric-value'>₹{int(total_pipeline)}L</div>
+                    <div class='metric-value'>₹{int(total_pipeline_val)}L</div>
                     <div style='color: #666; font-size: 0.9em;'>Active pipeline value</div>
                 </div>
             """, unsafe_allow_html=True)
@@ -765,12 +748,10 @@ def show_overview():
                 </div>
             """, unsafe_allow_html=True)
         
-        # Add practice-wise summary table
+        # Practice-wise table
         st.markdown("### Practice-wise Details")
         summary_data = practice_metrics.copy()
         summary_data['Win Rate'] = (summary_data['Closed Deals'] / (summary_data['Closed Deals'] + summary_data['Pipeline Deals']) * 100).round(1)
-        
-        # Format the summary table
         summary_data['Closed Amount'] = summary_data['Closed Amount'].apply(lambda x: f"₹{int(x)}L")
         summary_data['Total Pipeline'] = summary_data['Total Pipeline'].apply(lambda x: f"₹{int(x)}L")
         summary_data['Win Rate'] = summary_data['Win Rate'].apply(lambda x: f"{int(x)}%")
@@ -782,7 +763,7 @@ def show_overview():
     else:
         st.error("Practice column not found in the dataset")
 
-    # V. KritiKal Focus Areas
+    # KritiKal Focus Areas
     st.markdown("""
         <div style='background: linear-gradient(90deg, #9b59b6 0%, #8e44ad 100%); padding: 15px; border-radius: 10px; margin-bottom: 30px;'>
             <h3 style='color: white; margin: 0; text-align: center; font-size: 1.8em; font-weight: 600;'>KritiKal Focus Areas</h3>
@@ -790,46 +771,38 @@ def show_overview():
     """, unsafe_allow_html=True)
     
     if 'KritiKal Focus Areas' in df.columns:
-        # Calculate metrics by Focus Area
         focus_metrics = df.groupby('KritiKal Focus Areas').agg({
             'Amount': 'sum',
             'Sales Stage': lambda x: x[df['Sales Stage'].str.contains('Won', case=False, na=False)].count()
         }).reset_index()
         
-        # Handle NaN values
         focus_metrics['KritiKal Focus Areas'] = focus_metrics['KritiKal Focus Areas'].fillna('Uncategorized')
         
         focus_metrics.columns = ['Focus Area', 'Total Amount', 'Closed Deals']
-        focus_metrics['Total Amount'] = focus_metrics['Total Amount'] / 100000  # Convert to Lakhs
+        focus_metrics['Total Amount'] = focus_metrics['Total Amount'] / 100000
         
-        # Calculate total deals and percentage share
-        total_deals = df.groupby('KritiKal Focus Areas').size().reset_index()
-        total_deals.columns = ['Focus Area', 'Total Deals']
-        focus_metrics = focus_metrics.merge(total_deals, on='Focus Area', how='left')
+        total_deals_focus = df.groupby('KritiKal Focus Areas').size().reset_index()
+        total_deals_focus.columns = ['Focus Area', 'Total Deals']
+        focus_metrics = focus_metrics.merge(total_deals_focus, on='Focus Area', how='left')
         
-        # Calculate percentage share
         total_amount_focus = focus_metrics['Total Amount'].sum()
         focus_metrics['Share %'] = (focus_metrics['Total Amount'] / total_amount_focus * 100).round(1)
         
-        # Sort by Total Amount in descending order
         focus_metrics = focus_metrics.sort_values('Total Amount', ascending=False)
         
-        # First show the summary table
         st.markdown("### Focus Areas Summary")
         summary_data = focus_metrics.copy()
         summary_data['Total Amount'] = summary_data['Total Amount'].apply(lambda x: f"₹{int(x)}L")
         summary_data['Share %'] = summary_data['Share %'].apply(lambda x: f"{int(x)}%")
         
-        # Reset index to start from 1 and make it visible
         summary_data = summary_data.reset_index(drop=True)
-        summary_data.index = summary_data.index + 1  # Start from 1 instead of 0
+        summary_data.index = summary_data.index + 1
         
         st.dataframe(
             summary_data[['Focus Area', 'Total Amount', 'Share %', 'Total Deals', 'Closed Deals']],
             use_container_width=True
         )
         
-        # Then show the donut chart
         st.markdown("### Focus Areas Distribution")
         fig_focus = go.Figure(data=[go.Pie(
             labels=focus_metrics['Focus Area'],
@@ -874,7 +847,7 @@ def show_overview():
     else:
         st.info("KritiKal Focus Areas column not found in the dataset")
 
-    # V. Monthly Pipeline Trend
+    # Monthly Pipeline Trend
     st.markdown("""
         <div style='background: linear-gradient(90deg, #00b4db 0%, #0083b0 100%); padding: 15px; border-radius: 10px; margin-bottom: 30px;'>
             <h3 style='color: white; margin: 0; text-align: center; font-size: 1.8em; font-weight: 600;'>Monthly Pipeline Trend</h3>
@@ -882,39 +855,33 @@ def show_overview():
     """, unsafe_allow_html=True)
     
     if 'Expected Close Date' in df.columns and 'Amount' in df.columns and 'Sales Stage' in df.columns:
-        # Convert Expected Close Date to datetime
         df['Expected Close Date'] = pd.to_datetime(df['Expected Close Date'], errors='coerce')
         
-        # Create a selectbox for deal type
         deal_type = st.selectbox(
             "Select Deal Type",
             ["🌊 Pipeline", "🟢 Closed Won", "📦 All Deals"],
             index=0
         )
         
-        # Filter data based on selection
         if deal_type == "🌊 Pipeline":
             filtered_df = df[~df['Sales Stage'].str.contains('Won', case=False, na=False)]
             color = '#00b4db'
         elif deal_type == "🟢 Closed Won":
             filtered_df = df[df['Sales Stage'].str.contains('Won', case=False, na=False)]
             color = '#2ecc71'
-        else:  # All Deals
+        else:
             filtered_df = df
             color = '#9b59b6'
         
-        # Group by month and calculate metrics
         monthly_data = filtered_df.groupby(filtered_df['Expected Close Date'].dt.to_period('M')).agg({
             'Amount': 'sum',
             'Sales Stage': 'count'
         }).reset_index()
         
         monthly_data['Expected Close Date'] = monthly_data['Expected Close Date'].astype(str)
-        monthly_data['Amount'] = monthly_data['Amount'] / 100000  # Convert to Lakhs
+        monthly_data['Amount'] = monthly_data['Amount'] / 100000
         
-        # Create line chart
         fig_trend = go.Figure()
-        
         fig_trend.add_trace(go.Scatter(
             x=monthly_data['Expected Close Date'],
             y=monthly_data['Amount'],
@@ -964,9 +931,7 @@ def show_overview():
         
         st.plotly_chart(fig_trend, use_container_width=True)
         
-        # Add summary metrics
         col1, col2, col3 = st.columns(3)
-        
         with col1:
             total_value = monthly_data['Amount'].sum()
             st.markdown(f"""
@@ -976,7 +941,6 @@ def show_overview():
                     <div style='color: #666; font-size: 0.9em;'>Overall</div>
                 </div>
             """, unsafe_allow_html=True)
-        
         with col2:
             avg_monthly = monthly_data['Amount'].mean()
             st.markdown(f"""
@@ -986,7 +950,6 @@ def show_overview():
                     <div style='color: #666; font-size: 0.9em;'>Per month</div>
                 </div>
             """, unsafe_allow_html=True)
-        
         with col3:
             total_deals = monthly_data['Sales Stage'].sum()
             st.markdown(f"""
@@ -1007,10 +970,9 @@ def show_sales_team():
     # Process data once with caching
     df = process_data(st.session_state.df)
     
-    # Get unique team members
+    # Team members
     team_members = sorted(df['Sales Owner'].dropna().unique().tolist())
     
-    # Main content area with enhanced styling
     st.markdown("""
         <div style='
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
@@ -1031,12 +993,9 @@ def show_sales_team():
         </div>
     """, unsafe_allow_html=True)
 
-    # Calculate metrics once
     metrics = calculate_team_metrics(df)
     
-    # Display metrics with consistent styling
     col1, col2, col3, col4 = st.columns(4)
-    
     metric_style = """
         text-align: center;
         padding: 20px;
@@ -1045,7 +1004,6 @@ def show_sales_team():
         box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         margin: 10px 5px;
     """
-    
     metric_text_style = """
         color: #FFFFFF;
         font-family: 'Segoe UI', sans-serif;
@@ -1056,7 +1014,6 @@ def show_sales_team():
         letter-spacing: 0.5px;
         -webkit-font-smoothing: antialiased;
     """
-    
     label_style = """
         color: #FFFFFF;
         font-family: 'Segoe UI', sans-serif;
@@ -1068,7 +1025,6 @@ def show_sales_team():
         text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         -webkit-font-smoothing: antialiased;
     """
-    
     sublabel_style = """
         color: #FFFFFF;
         font-family: 'Segoe UI', sans-serif;
@@ -1080,7 +1036,6 @@ def show_sales_team():
         -webkit-font-smoothing: antialiased;
     """
     
-    # Calculate total metrics
     total_pipeline = metrics['Current Pipeline'].sum()
     total_closed = metrics['Closed Won'].sum()
     total_closed_deals = metrics['Closed Deals'].sum()
@@ -1124,16 +1079,13 @@ def show_sales_team():
             </div>
         """, unsafe_allow_html=True)
 
-    # Filters section with compact layout
     st.markdown("""
         <div style='padding: 15px; background: linear-gradient(to right, #f8f9fa, #e9ecef); border-radius: 10px; margin: 15px 0;'>
             <h4 style='color: #2a5298; margin: 0; font-size: 1.1em; font-weight: 600;'>🔍 Filters</h4>
         </div>
     """, unsafe_allow_html=True)
 
-    # All filters in one row
     col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(8)
-    
     with col1:
         filters = {
             'selected_member': st.selectbox(
@@ -1145,11 +1097,8 @@ def show_sales_team():
     with col2:
         filters['search'] = st.text_input("🔍 Search", placeholder="Search...")
     with col3:
-        # Define Indian fiscal year order
         fiscal_order = ['April', 'May', 'June', 'July', 'August', 'September', 
                        'October', 'November', 'December', 'January', 'February', 'March']
-        
-        # Get available months and sort them according to fiscal order
         available_months = df['Month'].dropna().unique().tolist()
         available_months.sort(key=lambda x: fiscal_order.index(x) if x in fiscal_order else len(fiscal_order))
         filters['month_filter'] = st.selectbox("📅 Month", options=["All Months"] + available_months)
@@ -1158,11 +1107,8 @@ def show_sales_team():
     with col5:
         filters['year_filter'] = st.selectbox("📅 Year", options=["All Years"] + sorted(df['Expected Close Date'].dt.year.unique().tolist()))
     with col6:
-        # Probability filter with custom range option
         probability_options = ["All Probability", "0-25%", "26-50%", "51-75%", "76-100%", "Custom Range"]
         filters['probability_filter'] = st.selectbox("📈 Probability", options=probability_options)
-        
-        # Show custom range inputs when "Custom Range" is selected
         if filters['probability_filter'] == "Custom Range":
             col6a, col6b = st.columns(2)
             with col6a:
@@ -1171,10 +1117,8 @@ def show_sales_team():
                 max_prob = st.number_input("Max %", min_value=0, max_value=100, value=100, step=1)
             filters['custom_prob_range'] = f"{min_prob}-{max_prob}%"
     with col7:
-        # Get unique sales stages and add custom options
         status_options = ["All Status", "Committed for the Month", "Upsides for the Month"]
         filters['status_filter'] = st.selectbox("🎯 Status", options=status_options)
-        
         if filters['status_filter'] == "Committed for the Month":
             current_month = pd.Timestamp.now().strftime('%B')
             mask = (df['Month'] == current_month) & (df['Probability_Num'] > 75)
@@ -1186,20 +1130,15 @@ def show_sales_team():
     with col8:
         filters['focus_filter'] = st.selectbox("🎯 Focus", options=["All Focus"] + sorted(df['KritiKal Focus Areas'].dropna().unique().tolist()))
 
-    # Apply all filters at once
     filtered_df = filter_dataframe(df, filters)
     
-    # Performance Metrics Row
     st.markdown("""
         <div style='margin-bottom: 20px;'>
             <h3 style='color: #2a5298; margin: 0; font-size: 1.4em; font-weight: 600;'>Performance Metrics</h3>
         </div>
     """, unsafe_allow_html=True)
 
-    # Create columns for metrics
     m1, m2, m3 = st.columns(3)
-
-    # Get the metrics values
     current_pipeline = filtered_df[~filtered_df['Is_Won']]['Amount_Lacs'].sum()
     weighted_projections = filtered_df[~filtered_df['Is_Won']]['Weighted_Amount'].sum()
     closed_won = filtered_df[filtered_df['Is_Won']]['Amount_Lacs'].sum()
@@ -1259,10 +1198,8 @@ def show_sales_team():
             </div>
         """, unsafe_allow_html=True)
 
-    # Add some spacing after the metrics
     st.markdown("<div style='margin: 25px 0;'></div>", unsafe_allow_html=True)
 
-    # Opportunities section with consistent styling
     st.markdown(f"""
         <div style='
             background: linear-gradient(to right, #f8f9fa, #e9ecef);
@@ -1281,24 +1218,20 @@ def show_sales_team():
         </div>
     """, unsafe_allow_html=True)
     
-    # Reset index to create proper serial numbers
     filtered_df = filtered_df.reset_index(drop=True)
-    filtered_df.index = filtered_df.index + 1  # Start from 1 instead of 0
+    filtered_df.index = filtered_df.index + 1
     
-    # Create a copy of the filtered dataframe with only required columns
     display_df = filtered_df[['Organization Name', 'Opportunity Name', 'Geography', 
                             'Expected Close Date', 'Probability', 'Amount', 
                             'Sales Owner', 'Pre-sales Technical Lead', 'Business Owner', 
                             'Type', 'KritiKal Focus Areas']].copy()
     
-    # Rename columns for display
     display_df = display_df.rename(columns={
         'Amount': 'Amount (In Lacs)',
         'Pre-sales Technical Lead': 'Tech Owner',
         'Type': 'Hunting /farming'
     })
     
-    # Convert Amount to Lacs
     display_df['Amount (In Lacs)'] = display_df['Amount (In Lacs)'].apply(lambda x: int(x/100000) if pd.notnull(x) else 0)
     display_df['Probability'] = display_df['Probability'].apply(format_percentage)
     display_df['Weighted Revenue (In Lacs)'] = display_df.apply(
@@ -1306,17 +1239,12 @@ def show_sales_team():
         axis=1
     )
     
-    # Format dates
     display_df['Expected Close Date'] = pd.to_datetime(display_df['Expected Close Date']).dt.strftime('%d-%b-%Y')
-    
-    # Sort by Amount in descending order
     display_df = display_df.sort_values('Amount (In Lacs)', ascending=False)
     
-    # Add S.No column after sorting
     display_df.index = range(1, len(display_df) + 1)
     display_df.index.name = 'S.No'
     
-    # Format the display
     st.dataframe(
         display_df,
         column_config={
@@ -1341,9 +1269,8 @@ def show_sales_team():
         }
     )
     
-    st.markdown("<div style='height: 25px;'></div>", unsafe_allow_html=True)  # Consistent spacing
-    
-    # Team performance table with consistent styling
+    st.markdown("<div style='height: 25px;'></div>", unsafe_allow_html=True)
+
     st.markdown("""
         <div style='
             background: linear-gradient(to right, #f8f9fa, #e9ecef);
@@ -1362,43 +1289,35 @@ def show_sales_team():
         </div>
     """, unsafe_allow_html=True)
     
-    # Calculate and display team metrics with rounded numbers
     team_metrics = df.groupby('Sales Owner').agg({
         'Amount': lambda x: round(x[df['Sales Stage'].str.contains('Won', case=False, na=False)].sum() / 100000, 1),
         'Sales Stage': lambda x: x[df['Sales Stage'].str.contains('Won', case=False, na=False)].count()
     }).reset_index()
-    
     team_metrics.columns = ['Sales Owner', 'Closed Won', 'Closed Deals']
     
-    # Calculate Current Pipeline
     pipeline_df = df[~df['Sales Stage'].str.contains('Won', case=False, na=False)]
     total_pipeline = round(pipeline_df.groupby('Sales Owner')['Amount'].sum() / 100000, 1)
     team_metrics['Current Pipeline'] = team_metrics['Sales Owner'].map(total_pipeline)
     
-    # Calculate Weighted Projections
     def calculate_weighted_projection(owner):
         owner_pipeline = pipeline_df[pipeline_df['Sales Owner'] == owner]
-        weighted_sum = sum((amount * prob / 100) 
-                         for amount, prob in zip(owner_pipeline['Amount'], 
-                                              owner_pipeline['Probability_Num']))
-        return round(weighted_sum / 100000, 1)  # Convert to Lacs
+        weighted_sum = sum((amt * pr / 100) 
+                           for amt, pr in zip(owner_pipeline['Amount'], owner_pipeline['Probability_Num']))
+        return round(weighted_sum / 100000, 1)
     
     team_metrics['Weighted Projections'] = team_metrics['Sales Owner'].apply(calculate_weighted_projection)
     
-    # Calculate Win Rate
-    total_deals = pipeline_df.groupby('Sales Owner').size()
-    team_metrics['Pipeline Deals'] = team_metrics['Sales Owner'].map(total_deals)
+    total_deals_owner = pipeline_df.groupby('Sales Owner').size()
+    team_metrics['Pipeline Deals'] = team_metrics['Sales Owner'].map(total_deals_owner)
     team_metrics['Win Rate'] = round((team_metrics['Closed Deals'] / (team_metrics['Closed Deals'] + team_metrics['Pipeline Deals']) * 100), 1)
     team_metrics = team_metrics.sort_values('Current Pipeline', ascending=False)
     
-    # Format the display data
     summary_data = team_metrics.copy()
     summary_data['Current Pipeline'] = summary_data['Current Pipeline'].apply(lambda x: f"₹{x:,}L")
     summary_data['Weighted Projections'] = summary_data['Weighted Projections'].apply(lambda x: f"₹{x:,}L")
     summary_data['Closed Won'] = summary_data['Closed Won'].apply(lambda x: f"₹{x:,}L")
     summary_data['Win Rate'] = summary_data['Win Rate'].apply(lambda x: f"{x}%")
     
-    # Display the enhanced team performance table
     st.dataframe(
         summary_data[[
             'Sales Owner',
@@ -1418,35 +1337,26 @@ def show_detailed():
         return
     
     st.title("Detailed Sales Data")
-    
     df = st.session_state.df
-    
-    # Search and filters
     search = st.text_input("Search", placeholder="Search in any field...")
     
-    # Filter the dataframe based on search
     if search:
         mask = np.column_stack([df[col].astype(str).str.contains(search, case=False, na=False) 
-                              for col in df.columns])
+                                for col in df.columns])
         df = df[mask.any(axis=1)]
     
-    # Display the filtered dataframe
     st.dataframe(df, use_container_width=True)
 
 def main():
-    # Sidebar navigation
     with st.sidebar:
         st.title("Navigation")
-        
         selected = st.radio(
             "Select View",
             options=["Data Input", "Overview", "Sales Team", "Detailed Data"],
             key="navigation"
         )
-        
         st.session_state.current_view = selected.lower().replace(" ", "_")
     
-    # Display the selected view
     if st.session_state.current_view == "data_input":
         show_data_input()
     elif st.session_state.current_view == "overview":
