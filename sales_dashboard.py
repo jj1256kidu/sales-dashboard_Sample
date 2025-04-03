@@ -7,6 +7,13 @@ import numpy as np
 import io
 from functools import lru_cache
 
+# === USER AUTHENTICATION SETUP === #
+USERS = {
+    "admin": "admin123",
+    "john": "john@123",
+    "jane": "secure456"
+}
+
 # Format helper functions
 def format_amount(x):
     try:
@@ -1383,25 +1390,64 @@ def show_detailed():
         df = df[mask.any(axis=1)]
     
     st.dataframe(df, use_container_width=True)
+# === LOGIN PAGE FUNCTION === #
+def show_login_page():
+    st.markdown("<h2 style='text-align:center;'>🔐 Login to Access Sales Dashboard</h2>", unsafe_allow_html=True)
+    
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+    
+    if st.button("Login"):
+        if username in USERS and USERS[username] == password:
+            st.session_state.logged_in = True
+            st.session_state.username = username
+            st.success(f"Welcome, {username}!")
+            st.experimental_rerun()
+        else:
+            st.error("Invalid username or password")
 
 def main():
-    with st.sidebar:
-        st.title("Navigation")
-        selected = st.radio(
-            "Select View",
-            options=["Data Input", "Overview", "Sales Team", "Detailed Data"],
-            key="navigation"
-        )
-        st.session_state.current_view = selected.lower().replace(" ", "_")
-    
-    if st.session_state.current_view == "data_input":
-        show_data_input()
-    elif st.session_state.current_view == "overview":
-        show_overview()
-    elif st.session_state.current_view == "sales_team":
-        show_sales_team()
-    elif st.session_state.current_view == "detailed_data":
-        show_detailed()
+    st.set_page_config(
+        page_title="Sales Dashboard",
+        page_icon="📊",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
 
+    # Initialize session state for login
+    if 'logged_in' not in st.session_state:
+        st.session_state.logged_in = False
+    if 'username' not in st.session_state:
+        st.session_state.username = ""
+
+    if not st.session_state.logged_in:
+        show_login_page()
+    else:
+        with st.sidebar:
+            st.title("Navigation")
+            st.write(f"👤 Logged in as: **{st.session_state.username}**")
+            selected = st.radio(
+                "Select View",
+                options=["Data Input", "Overview", "Sales Team", "Detailed Data"],
+                key="navigation"
+            )
+            st.session_state.current_view = selected.lower().replace(" ", "_")
+
+            if st.button("Logout"):
+                st.session_state.logged_in = False
+                st.session_state.username = ""
+                st.experimental_rerun()
+
+        # Route views
+        if st.session_state.current_view == "data_input":
+            show_data_input()
+        elif st.session_state.current_view == "overview":
+            show_overview()
+        elif st.session_state.current_view == "sales_team":
+            show_sales_team()
+        elif st.session_state.current_view == "detailed_data":
+            show_detailed()
+
+# Entry point
 if __name__ == "__main__":
     main()
