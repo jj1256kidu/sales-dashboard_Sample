@@ -1128,9 +1128,9 @@ def show_sales_team():
     with col6:
         probability_options = ["All Probability", "0-25%", "26-50%", "51-75%", "76-100%", "Custom Range"]
         filters['probability_filter'] = st.selectbox("📈 Probability", options=probability_options)
+        min_prob = filters.get('min_prob', 0)
+        max_prob = filters.get('max_prob', 100)
         if filters['probability_filter'] == "Custom Range":
-            min_prob = filters.get('min_prob', 0)
-            max_prob = filters.get('max_prob', 100)
             col6a, col6b = st.columns(2)
             with col6a:
                 min_prob = st.number_input(
